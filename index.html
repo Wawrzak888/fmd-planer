@@ -214,12 +214,26 @@
   [data-theme="dark"] .btn.ghost {border-color: rgba(255, 255, 255, 0.2); color: var(--muted);}
   [data-theme="dark"] .btn.ghost:hover {background-color: var(--glass); border-color: rgba(255, 255, 255, 0.4);}
 
-  footer {color: #374151; background: transparent;}
-  footer div[style*="font-weight: 600"] {color: var(--accent);}
-  footer strong {color: #000;}
-  [data-theme="dark"] footer {color: #b0b8c5 !important;}
-  [data-theme="dark"] footer div[style*="font-weight: 600"] {color: var(--accent) !important;}
-  [data-theme="dark"] footer strong {color: #ffffff !important;}
+  /* --- POCZĄTEK POPRAWKI STOPKI W TRYBIE CIEMNYM --- */
+  footer {
+      color: #374151; /* Domyślny kolor tekstu w trybie jasnym */
+      background: transparent; /* Domyślnie przezroczyste tło */
+  }
+  footer div[style*="font-weight: 600"] {color: var(--accent);} /* Kolor "Autor" */
+  footer strong {color: #000;} /* Kolor "Zastrzeżenie" */
+
+  [data-theme="dark"] footer {
+      color: #b0b8c5 !important; /* Jasnoszary tekst dla <p> */
+      background-color: var(--bg) !important; /* DODANO: Solidne tło pasujące do motywu */
+      border-top-color: rgba(255, 255, 255, 0.1) !important; /* Jaśniejsza linia górna */
+  }
+  [data-theme="dark"] footer div[style*="font-weight: 600"] {
+      color: var(--accent) !important; /* Jasny accent dla "Autor" */
+  }
+  [data-theme="dark"] footer strong {
+      color: #ffffff !important; /* Biały dla "Zastrzeżenie" */
+  }
+  /* --- KONIEC POPRAWKI STOPKI W TRYBIE CIEMNYM --- */
 
 </style>
 </head>
@@ -1603,7 +1617,7 @@ function updateTotals(){
   // Użyj tłumaczeń w tekstach pasków
   barProteinText.textContent = `${fmt(pSum,2)} g ${t.progressLabelFrom} ${limits.protein} g (${fmt(pPerc,0)}%)`;
   barFatText.textContent = `${fmt(fSum,2)} g ${t.progressLabelFrom} ${limits.fat} g (${fmt(fPerc,0)}%)`;
-  barCarbText.textContent = `${fmt(cSum,2)} g ${t.progressLabelFrom} ${limits.carbs} g (${fmt(cPerc,0)}%)`;
+  barCarbText.textContent = `${fmt(cSum,2)} g ${t.progressLabelFrom} ${limits.carbs} g (${fmt(pPerc,0)}%)`;
 
   // warnings - użyj tłumaczeń
   alertsEl.innerHTML = '';
@@ -1707,9 +1721,10 @@ function toggleTheme(){
 // Zmienna do przechowywania stanu, aby zapobiec wielokrotnym kliknięciom
 let isAiLoading = false;
 
-// Adres URL do naszej funkcji serwerowej na Vercel
-// Jest to ścieżka względna, Vercel automatycznie przekieruje ją do /api/ai
-const apiUrl = '/api/ai';
+// --- POCZĄTEK POPRAWKI BŁĘDU ---
+// Używamy pełnego adresu URL do funkcji na Vercel, aby uniknąć błędu parsowania
+const apiUrl = 'https://fmd-planer.vercel.app/api/ai';
+// --- KONIEC POPRAWKI BŁĘDU ---
 
 // Funkcja pomocnicza do formatowania odpowiedzi AI (prosty Markdown)
 function formatAiResponse(text) {
@@ -1893,11 +1908,14 @@ function init(){
   // NOWE LISTENERY MODALA AI
   aiButton.addEventListener('click', callAiAssistant);
   aiModalCloseBtn.addEventListener('click', () => aiModalBackdrop.classList.remove('visible'));
-  aiModalBackdrop.addEventListener('click', (e) => {
-      if (e.target === aiModalBackdrop) {
-          aiModalBackdrop.classList.remove('visible');
-      }
-  });
+  // --- POCZĄTEK ZMIANY: Usunięcie zamykania modala przez kliknięcie tła ---
+  // Usunięto poniższy listener:
+  // aiModalBackdrop.addEventListener('click', (e) => {
+  //     if (e.target === aiModalBackdrop) {
+  //         aiModalBackdrop.classList.remove('visible');
+  //     }
+  // });
+  // --- KONIEC ZMIANY ---
 
 
   // Wczytaj preferencje motywu
