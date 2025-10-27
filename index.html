@@ -109,10 +109,21 @@
 
   .plan-table{width:100%;border-collapse:collapse;margin-top:8px;}
   .plan-table th,.plan-table td{padding:8px;text-align:left;border-bottom:1px solid rgba(0,0,0,0.04);font-size:14px;}
-  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px; flex-wrap: wrap;} /* Dodano flex-wrap */
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
   .btn{background:var(--accent);color:#021018;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
   .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);}
   .btn.small-btn { padding: 5px 8px; font-size: 12px; } /* NOWY STYL */
+  /* ---- NOWY STYL: Przycisk AI ---- */
+  .btn.ai {
+    background: linear-gradient(90deg, #6d28d9, #9f7aea); /* Fioletowy gradient */
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);
+  }
+  .btn.ai:hover {
+      background: linear-gradient(90deg, #5b21b6, #8b5cf6);
+  }
+  /* ---- KONIEC STYLU AI ---- */
+  
   .warning{padding:10px;border-radius:8px;background:linear-gradient(90deg,rgba(255,230,230,0.6),transparent);color:var(--danger);margin-top:10px;}
   .muted{color:var(--muted);font-size:13px;}
   footer{grid-column:1/-1;margin-top:18px;text-align:center;color:var(--muted);font-size:13px;}
@@ -123,7 +134,7 @@
   .tiny{width:72px;}
   .icon{opacity:.8}
   .tooltip{position:relative;display:inline-block;}
-  .tooltip .tt{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.2);display:none;width:260px;color:var(--muted);font-size:13px;}
+  .tooltip .tt{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.2);display:none;width:260px;color:var(--muted);font-size:13px; z-index: 10;}
   .tooltip:hover .tt{display:block;}
 
   /* --- ZMIANA: Style dla rozwijanych kategorii --- */
@@ -209,6 +220,109 @@
   }
   /* --- KONIEC NOWYCH STYLÓW --- */
 
+  /* ---- NOWE STYLE: Modal AI ---- */
+  .ai-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+  .ai-modal-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+  .ai-modal-content {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 550px;
+    transform: scale(0.95);
+    transition: transform 0.3s;
+    z-index: 999;
+  }
+  .ai-modal-backdrop.visible .ai-modal-content {
+    transform: scale(1);
+  }
+  .ai-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .ai-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--accent);
+  }
+  .ai-modal-close-btn {
+    background: var(--glass);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 30px;
+    color: var(--muted);
+  }
+  .ai-modal-body {
+    font-size: 14px;
+    line-height: 1.6;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .ai-modal-body ul {
+    padding-left: 20px;
+    margin-top: 10px;
+  }
+  .ai-modal-body li {
+    margin-bottom: 8px;
+  }
+  /* Animacja ładowania (spinner) */
+  .ai-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    text-align: center;
+  }
+  .ai-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--glass);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: ai-spin 1s linear infinite;
+  }
+  .ai-loader p {
+    margin-top: 15px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  @keyframes ai-spin {
+    to { transform: rotate(360deg); }
+  }
+  /* Styl dla odpowiedzi błędu */
+  .ai-error-message {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    padding: 12px;
+    border-radius: 8px;
+  }
+  /* ---- KONIEC STYLI MODALA ---- */
+
 
   /* --- NOWE STYLE DRUKOWANIA (PDF) --- */
   @media print {
@@ -223,7 +337,7 @@
     #langToggle, /* Ukryj przycisk języka */
     .delete-custom-btn, /* Ukryj przyciski usuwania */
     #productSearchInput, /* Ukryj pole wyszukiwania */
-    #aiAssistBtn /* Ukryj przycisk AI */
+    #aiButton /* Ukryj przycisk AI */
     {
       display: none !important;
     }
@@ -333,100 +447,6 @@
       color: #ffffff !important; /* Czysty biały dla maksymalnego kontrastu */
   }
   /* --- KONIEC ZMIANY STYLÓW STOPKI --- */
-
-  /* --- NOWE STYLE DLA MODALA AI --- */
-  .ai-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(4px);
-  }
-  .ai-modal {
-    max-width: 500px;
-    width: calc(100% - 40px);
-    max-height: 80vh;
-    overflow-y: auto;
-    z-index: 1001;
-    /* Użyj zmiennych, aby modal pasował do motywu */
-    background: var(--card); 
-    color: var(--muted);
-    border: 1px solid var(--glass);
-  }
-  .ai-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--glass);
-    padding-bottom: 10px;
-  }
-  .ai-modal-header strong {
-    color: var(--accent);
-    font-size: 1.1rem;
-  }
-  .ai-modal-close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0 5px;
-  }
-  .ai-modal-body {
-    padding-top: 15px;
-    min-height: 100px;
-  }
-  /* Style dla odpowiedzi AI */
-  #aiModalContent {
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  #aiModalContent strong, #aiModalContent b {
-    color: var(--accent); /* Wyróżnienie */
-    font-weight: 600;
-  }
-  #aiModalContent ul {
-    list-style-type: disc;
-    padding-left: 20px;
-    margin-top: 10px;
-  }
-  #aiModalContent li {
-    margin-bottom: 8px;
-  }
-  #aiModalContent p {
-    margin-bottom: 10px;
-  }
-
-  /* Loader */
-  .loader-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 20px;
-  }
-  .loader {
-    border: 4px solid var(--glass);
-    border-top: 4px solid var(--accent);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  /* --- KONIEC STYLI MODALA AI --- */
 
 </style>
 </head>
@@ -570,12 +590,7 @@
             <button id="saveBtn" class="btn ghost" data-translate="saveButton">Zapisz plan</button>
             <button id="clearBtn" class="btn ghost" data-translate="clearButton">Wyczyść plan</button>
             <!-- NOWY PRZYCISK AI -->
-            <button id="aiAssistBtn" class="btn" style="background-color: #8b5cf6; color: #fff;" title="Użyj AI, aby zasugerować produkty do zbilansowania planu">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="icon" viewBox="0 0 16 16" style="display: inline-block; vertical-align: text-bottom; margin-right: 5px;">
-                <path d="M8 1.5c1.3 0 2.5.6 3.3 1.7A4.8 4.8 0 0 1 13 8a4.8 4.8 0 0 1-1.7 3.8c-.8 1-2 1.7-3.3 1.7s-2.5-.6-3.3-1.7A4.8 4.8 0 0 1 3 8a4.8 4.8 0 0 1 1.7-3.8c.8-1 2-1.7 3.3-1.7M8 0a6.3 6.3 0 0 0-4.6 1.8A6.3 6.3 0 0 0 1.5 8c0 2 .7 3.7 1.9 4.9A6.3 6.3 0 0 0 8 14.7c2 0 3.7-.7 4.9-1.9A6.3 6.3 0 0 0 14.5 8a6.3 6.3 0 0 0-1.9-4.9A6.3 6.3 0 0 0 8 0m-.5 5.9h.4l.4.8.4-.8h.4v3.1h-.4V6.8l-.4.8h-.4l-.4-.8v2.2h-.4zM5.2 5.9h.4v3.1h-.4zM9.3 5.9h.4v3.1h-.4zM6.9 5.9h.4v3.1h-.4z"/>
-              </svg>
-              <span data-translate="aiAssistButton">Asystent AI</span>
-            </button>
+            <button id="aiButton" class="btn ai" data-translate="aiButton">Asystent AI</button>
             <button id="exportBtn" class="btn" data-translate="printButton">Drukuj / Eksportuj do PDF</button>
           </div>
 
@@ -690,19 +705,17 @@
 </div>
 
 <!-- NOWY MODAL AI -->
-<div id="aiModal" class="ai-modal-overlay" style="display: none;">
-  <div class="ai-modal card">
+<div id="aiModalBackdrop" class="ai-modal-backdrop">
+  <div class="ai-modal-content">
     <div class="ai-modal-header">
-      <strong data-translate="aiModalTitle">Asystent Diety AI 🤖</strong>
+      <h2 data-translate="aiModalTitle">Asystent AI FMD</h2>
       <button id="aiModalCloseBtn" class="ai-modal-close-btn">&times;</button>
     </div>
-    <div class="ai-modal-body">
-      <div id="aiModalLoader" class="loader-container" style="display: none;">
-        <div class="loader"></div>
+    <div id="aiModalBody" class="ai-modal-body">
+      <!-- Treść będzie wstrzykiwana dynamicznie -->
+      <div class="ai-loader">
+        <div class="ai-spinner"></div>
         <p data-translate="aiModalLoading">Myślę... Analizuję Twój plan...</p>
-      </div>
-      <div id="aiModalContent">
-        <!-- AI response will be injected here -->
       </div>
     </div>
   </div>
@@ -712,8 +725,9 @@
 <script>
 /*
   Kalkulator FMD (prototyp):
-  - i18n implementation started
-  - AI Assistant (Vercel Backend)
+  - i18n implementation
+  - Custom products
+  - Vercel AI (Gemini) integration
 */
 
 // --- NOWA STRUKTURA TŁUMACZEŃ ---
@@ -753,6 +767,7 @@ const translations = {
         saveButton: "Zapisz plan",
         clearButton: "Wyczyść plan",
         printButton: "Drukuj / Eksportuj do PDF",
+        aiButton: "Asystent AI", // NOWE
         footerAuthor: "Autor kalkulatora: Tomasz Wawrzak",
         footerDescription1: "Narzędzie jest prototypem opartym na publicznie dostępnych informacjach dotyczących protokołu Diety Naśladującej Post (FMD), którego autorem jest dr Valter Longo (University of Southern California).",
         footerDescription2: "Przybliżone wartości makroskładników bazują na ogólnodostępnych bazach danych (m.in. polskie tabele Instytutu Żywności i Żywienia (IŻŻ), USDA FoodData Central) i mogą różnić się od rzeczywistych wartości w zależności od produktu.",
@@ -788,11 +803,6 @@ const translations = {
         errorProductNameEmpty: "Nazwa produktu nie może być pusta.",
         errorProductMacrosInvalid: "Wartości B/T/W muszą być liczbami nieujemnymi.",
         errorProductCategoryMissing: "Wybierz kategorię.",
-        // NOWE TŁUMACZENIA AI
-        aiAssistButton: "Asystent AI",
-        aiModalTitle: "Asystent Diety AI 🤖",
-        aiModalLoading: "Myślę... Analizuję Twój plan...",
-        aiModalError: "Przepraszam, wystąpił błąd podczas łączenia z Asystentem AI. Spróbuj ponownie później.",
         // Nagłówki tabeli Planu Dnia
         planTableHeaderProduct: "Produkt",
         planTableHeaderGrams: "g",
@@ -823,6 +833,10 @@ const translations = {
         personalSaveBtn: "Zapisz",
         personalClearBtn: "Wyczyść dane",
         personalCancelBtn: "Anuluj",
+        // NOWE: AI Modal
+        aiModalTitle: "Asystent AI FMD",
+        aiModalLoading: "Myślę... Analizuję Twój plan...",
+        aiModalError: "Wystąpił błąd. Spróbuj ponownie później.",
         // Kategorie
         cat_unsatFats: "Tłuszcze nienasycone",
         cat_complexCarbs: "Węglowodany złożone",
@@ -904,6 +918,7 @@ const translations = {
         saveButton: "Save plan",
         clearButton: "Clear plan",
         printButton: "Print / Export to PDF",
+        aiButton: "AI Assistant", // NEW
         footerAuthor: "Calculator author: Tomasz Wawrzak",
         footerDescription1: "This tool is a prototype based on publicly available information regarding the Fasting Mimicking Diet (FMD) protocol, developed by Dr. Valter Longo (University of Southern California).",
         footerDescription2: "Approximate macronutrient values are based on publicly available databases (incl. Polish Food Composition Tables by IŻŻ, USDA FoodData Central) and may differ from actual values depending on the product.",
@@ -939,11 +954,6 @@ const translations = {
         errorProductNameEmpty: "Product name cannot be empty.",
         errorProductMacrosInvalid: "P/F/C values must be non-negative numbers.",
         errorProductCategoryMissing: "Select a category.",
-        // NEW AI TRANSLATIONS
-        aiAssistButton: "AI Assistant",
-        aiModalTitle: "AI Diet Assistant 🤖",
-        aiModalLoading: "Thinking... Analyzing your plan...",
-        aiModalError: "Sorry, an error occurred while contacting the AI Assistant. Please try again later.",
         // Table Headers
         planTableHeaderProduct: "Product",
         planTableHeaderGrams: "g",
@@ -974,6 +984,10 @@ const translations = {
         personalSaveBtn: "Save",
         personalClearBtn: "Clear Data",
         personalCancelBtn: "Cancel",
+        // NEW: AI Modal
+        aiModalTitle: "FMD AI Assistant",
+        aiModalLoading: "Thinking... Analyzing your plan...",
+        aiModalError: "An error occurred. Please try again later.",
         // Categories
         cat_unsatFats: "Unsaturated fats",
         cat_complexCarbs: "Complex carbohydrates",
@@ -1085,7 +1099,6 @@ const LIMITS = {
 };
 // --- KONIEC ZMIANY ---
 
-// Plan (lista pozycji): {id, productId, grams}
 let plan = [];
 let customProducts = []; // Tablica na własne produkty użytkownika
 
@@ -1138,12 +1151,11 @@ const inputEndWeight = document.getElementById('inputEndWeight');
 const editPersonalDataBtn = document.getElementById('editPersonalDataBtn');
 const savePersonalDataBtn = document.getElementById('savePersonalDataBtn');
 const clearPersonalDataBtn = document.getElementById('clearPersonalDataBtn');
-// NOWE REFERENCJE DLA MODALA AI
-const aiModal = document.getElementById('aiModal');
+// NOWE REFERENCJE MODALA AI
+const aiButton = document.getElementById('aiButton');
+const aiModalBackdrop = document.getElementById('aiModalBackdrop');
+const aiModalBody = document.getElementById('aiModalBody');
 const aiModalCloseBtn = document.getElementById('aiModalCloseBtn');
-const aiModalLoader = document.getElementById('aiModalLoader');
-const aiModalContent = document.getElementById('aiModalContent');
-const aiAssistBtn = document.getElementById('aiAssistBtn');
 
 
 // --- Helpers ---
@@ -1217,9 +1229,8 @@ function updateUIElements(lang) {
             // Pozostałe elementy
             else {
                 // Bezpieczniejsze ustawianie textContent
-                if (!el.children.length || ['H1', 'STRONG', 'BUTTON', 'LABEL', 'DIV', 'P', 'LI', 'SPAN'].includes(el.tagName)) {
+                if (!el.children.length || ['H1', 'STRONG', 'BUTTON', 'LABEL', 'DIV', 'P', 'LI'].includes(el.tagName)) {
                    // Jeśli nie ma dzieci lub jest to prosty element blokowy/tekstowy
-                   // (dodano SPAN dla pewności)
                    el.textContent = t[key];
                 } else if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
                     // Jeśli ma dzieci, ale pierwszy jest węzłem tekstowym
@@ -1917,160 +1928,144 @@ function toggleTheme(){
   try { localStorage.setItem('fmd_theme', next); } catch(e) {}
 }
 
-// --- NOWE FUNKCJE ASYSTENTA AI ---
 
-// Prosty parser Markdown -> HTML
-function parseMarkdown(text) {
+// --- NOWA SEKCJA: AI Assistant (Gemini) ---
+
+// Zmienna do przechowywania stanu, aby zapobiec wielokrotnym kliknięciom
+let isAiLoading = false;
+
+// Adres URL do naszej funkcji serwerowej na Vercel
+// Jest to ścieżka względna, Vercel automatycznie przekieruje ją do /api/ai
+const apiUrl = '/api/ai';
+
+// Funkcja pomocnicza do formatowania odpowiedzi AI (prosty Markdown)
+function formatAiResponse(text) {
     let html = text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Pogrubienie
-        .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Kursywa
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')     // Kursywa
+        .replace(/- (.*?)(?=\n- |\n\n|$)/g, '<li>$1</li>'); // Elementy listy
 
-    // Konwersja list (obsługuje gwiazdki i myślniki)
-    html = html.replace(/^\s*[\*\-]\s+(.*)$/gm, '<li>$1</li>'); // Elementy listy
-    html = html.replace(/(\n?<ul>)?(<li>.*<\/li>)(\n?<\/ul>)?/gs, '<ul>$2</ul>'); // Otocz listy <ul>
-
-    // Konwersja paragrafów
-    html = html.split('\n\n').map(p => p.trim() ? `<p>${p}</p>` : '').join('');
+    // Poprawka dla list, aby były owinięte w <ul>
+    if (html.includes('<li>')) {
+        html = '<ul>' + html.replace(/<li>/g, '<li>').replace(/<\/li>/g, '</li>') + '</ul>';
+        // Naprawia sytuacje, gdyby <li> nie były poprawnie zamknięte (chociaż regex wyżej powinien to robić)
+        html = html.replace(/<\/li>(\n)?(?!<li>)/g, '</li>');
+    }
     
-    // Czyszczenie po konwersji list w paragrafach
-    html = html.replace(/<p><ul>/g, '<ul>');
-    html = html.replace(/<\/ul><\/p>/g, '</ul>');
-    // Poprawka dla nowych linii
-    html = html.replace(/\n/g, '<br>');
-    html = html.replace(/<br><li>/g, '<li>');
+    html = html.replace(/\n/g, '<br>'); // Nowe linie
+    // Usuń potencjalne podwójne <br> w listach
+    html = html.replace(/<br><ul>/g, '<ul>');
     html = html.replace(/<\/li><br>/g, '</li>');
-    html = html.replace(/<p><br>/g, '<p>');
-
+    
     return html;
 }
 
-// Pokazywanie i ukrywanie modala
-function showAIModal(loading = false) {
-    aiModal.style.display = 'flex';
-    if (loading) {
-        aiModalLoader.style.display = 'flex';
-        aiModalContent.innerHTML = '';
-    } else {
-        aiModalLoader.style.display = 'none';
-    }
+// Wyświetla stan ładowania w modalu
+function showAiLoading() {
+    const t = translations[currentLanguage];
+    aiModalBody.innerHTML = `
+      <div class="ai-loader">
+        <div class="ai-spinner"></div>
+        <p>${t.aiModalLoading}</p>
+      </div>`;
+    aiModalBackdrop.classList.add('visible');
 }
 
-function hideAIModal() {
-    aiModal.style.display = 'none';
+// Wyświetla odpowiedź (sukces lub błąd) w modalu
+function showAiResponse(htmlContent) {
+    aiModalBody.innerHTML = htmlContent;
 }
 
 // Główna funkcja wywołująca AI
-async function callAIAssistant() {
-    showAIModal(true);
+async function callAiAssistant() {
+    if (isAiLoading) return; // Nie rób nic, jeśli już się ładuje
+    isAiLoading = true;
+    showAiLoading();
+    
     const t = translations[currentLanguage];
-
-    // 1. Zbierz dane do promptu
     const mode = dayModeEl.value;
     const limits = LIMITS[mode];
-    const modeText = (mode === 'day1' ? t.day1Option : t.days2to5Option).split('—')[0].trim(); // "Dzień 1" lub "Dni 2-5"
-
-    // Oblicz aktualne sumy
+    
+    // 1. Oblicz aktualne sumy
     let kcalSum=0, pSum=0, fSum=0, cSum=0;
-    const productsInPlan = [];
-    const tProducts = translations[currentLanguage]; // Tłumaczenia nazw produktów
-
+    let planDetails = [];
     plan.forEach(item => {
         const pr = ALL_PRODUCTS.find(x => x.id === item.productId);
         if (!pr) return;
+        const productName = t[pr.id + '_name'] || pr.name;
+        planDetails.push(`${productName}: ${item.grams}g`);
         kcalSum += item.grams * pr.kcal / 100;
         pSum += item.grams * pr.p / 100;
         fSum += item.grams * pr.f / 100;
         cSum += item.grams * pr.c / 100;
-        
-        const productName = tProducts[pr.id + '_name'] || pr.name;
-        productsInPlan.push(`${productName} (${item.grams}g)`);
     });
 
-    // Zaokrąglij sumy
-    pSum = fmt(pSum, 2);
-    fSum = fmt(fSum, 2);
-    cSum = fmt(cSum, 2);
+    // 2. Przygotuj "prompt" (zapytanie) dla AI
+    const systemPrompt = `Jesteś "Asystentem Diety FMD". Pomagasz użytkownikom zbilansować ich dzienny plan diety FMD.
+    Zasady:
+    1. Jesteś miły, wspierający i mówisz zwięźle.
+    2. Twoim celem jest pomoc w osiągnięciu limitów makroskładników BEZ ich przekraczania, zwłaszcza białka.
+    3. Musisz pisać w języku polskim.
+    4. Analizuj stan obecny i limity. Podaj sugestie, co dodać (konkretne produkty i gramatury), aby zbliżyć się do celu.
+    5. Zawsze ostrzegaj, jeśli białko jest blisko limitu lub go przekracza.
+    6. Sugeruj tylko produkty z dozwolonej listy: oliwa z oliwek, awokado, orzechy (migdały), nasiona, brokuły, szpinak, kapusta, jarmuż, kalafior, ogórek, pomidor, cukinia, soczewica (gotowana), quinoa (gotowana), ryż brązowy (gotowany).
+    7. Formatuj odpowiedź używając prostego markdown (np. **pogrubienie** i listy '- ').`;
 
-    // Oblicz braki
-    const pRem = fmt(Math.max(0, limits.protein - pSum), 2);
-    const fRem = fmt(Math.max(0, limits.fat - fSum), 2);
-    const cRem = fmt(Math.max(0, limits.carbs - cSum), 2);
+    const userQuery = `
+    Cześć Asystencie. Oto mój obecny stan planu FMD dla trybu "${mode}":
     
-    const productsInPlanText = productsInPlan.length > 0 ? productsInPlan.join(', ') : 'Brak (plan jest pusty)';
-    const allProductsText = ALL_PRODUCTS
-      .filter(p => p.allowed)
-      .map(p => {
-          const name = tProducts[p.id + '_name'] || p.name;
-          return `${name} (B:${p.p}, T:${p.f}, W:${p.c} na 100g)`;
-      })
-      .join('\n');
-
-
-    // 2. Zbuduj prompty
-    const systemPrompt = `Jesteś ekspertem dietetykiem specjalizującym się w protokole FMD (Fasting Mimicking Diet). Twoim zadaniem jest pomoc użytkownikowi w dokończeniu planu żywieniowego. Bądź przyjazny, konkretny i zwięzły.
-ZASADY:
-1.  Absolutnym priorytetem jest nieprzekroczenie limitu białka.
-2.  Zaproponuj konkretne produkty (z listy dostępnych) i ich gramaturę, aby jak najlepiej zbliżyć się do celu tłuszczu i węglowodanów.
-3.  Zawsze faworyzuj produkty o zerowej lub śladowej ilości białka (np. oliwa z oliwek), jeśli limit białka jest bliski przekroczenia.
-4.  Odpowiedz w języku polskim, w formacie Markdown. Używaj list wypunktowanych (z gwiazdką \`*\`) dla sugestii.
-5.  Twoja odpowiedź powinna być krótka, zawierać 1-2 zdania wstępu i listę sugestii.
-6.  Bazuj *tylko* na liście dostępnych produktów.`;
-
-    const userQuery = `Pomóż mi dokończyć plan na ${modeText}.
-Cel: Białko max ${limits.protein}g, Tłuszcz max ${limits.fat}g, Węglowodany max ${limits.carbs}g.
-Obecna suma: Białko ${pSum}g, Tłuszcz ${fSum}g, Węglowodany ${cSum}g.
-Brakuje (do celu): Białko ${pRem}g, Tłuszcz ${fRem}g, Węglowodany ${cRem}g.
-Produkty już w planie: ${productsInPlanText}.
-
-Oto *wszystkie* dostępne produkty (nazwa, makro na 100g):
----
-${allProductsText}
----
-
-Zaproponuj co dodać (z powyższej listy), aby najlepiej trafić w cel, nie przekraczając absolutnie limitu białka (${limits.protein}g).`;
-
-    // 3. Wywołanie API (TERAZ DO NASZEGO SERWERA POŚREDNIKA)
-    // ZMIANA: Używamy lokalnego adresu naszej funkcji Vercel
-    const apiUrl = '/api/ai';
-
-    const payload = {
-      // Wysyłamy tylko prompty, klucz API jest bezpieczny na serwerze
-      userQuery: userQuery,
-      systemPrompt: systemPrompt
-    };
-
-    const options = {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    };
-
+    Limity docelowe:
+    - Kalorie: ok. ${limits.kcal} kcal
+    - Białko: max ${limits.protein} g (KRYTYCZNE!)
+    - Tłuszcze: ok. ${limits.fat} g
+    - Węglowodany: ok. ${limits.carbs} g
+    
+    Mój obecny plan (${planDetails.length > 0 ? planDetails.join(', ') : 'brak produktów'}):
+    - Kalorie: ${fmt(kcalSum, 1)} kcal
+    - Białko: ${fmt(pSum, 2)} g
+    - Tłuszcze: ${fmt(fSum, 2)} g
+    - Węglowodany: ${fmt(cSum, 2)} g
+    
+    Brakuje mi:
+    - Białko: ${fmt(limits.protein - pSum, 2)} g (do limitu)
+    - Tłuszcze: ${fmt(limits.fat - fSum, 2)} g (do celu)
+    - Węglowodany: ${fmt(limits.carbs - cSum, 2)} g (do celu)
+    
+    Proszę, przeanalizuj mój plan i zasugeruj 2-3 konkretne produkty (z listy dozwolonych) i ich gramatury, które pomogą mi najlepiej zbilansować braki, nie przekraczając limitu białka.`;
+    
+    // 3. Wywołaj API (nasz serwer Vercel)
     try {
-        // Używamy zwykłego fetch
-        const response = await fetch(apiUrl, options);
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userQuery, systemPrompt })
+        });
+        
         if (!response.ok) {
-            // Jeśli nasz serwer (api/ai.js) zwrócił błąd
-            const errorData = await response.json();
-            console.error("Błąd z serwera /api/ai:", errorData);
-            throw new Error(errorData.error || "Błąd serwera");
+            // Jeśli serwer Vercel odpowiedział błędem (np. 500 lub 400)
+            throw new Error(`Server error: ${response.statusText}`);
         }
-
-        const result = await response.json(); // Odbieramy odpowiedź z naszego serwera { text: "..." }
-
-        if (result && result.text) {
-            const aiText = result.text;
-            aiModalContent.innerHTML = parseMarkdown(aiText);
-            showAIModal(false); // Pokaż zawartość, ukryj loader
+        
+        const result = await response.json();
+        
+        if (result.text) {
+            // Sukces! Mamy odpowiedź od AI
+            const formattedResponse = formatAiResponse(result.text);
+            showAiResponse(formattedResponse);
         } else {
-            throw new Error("Nieprawidłowa odpowiedź z serwera /api/ai");
+            // Jeśli serwer Vercel odpowiedział poprawnie (200), ale bez tekstu AI
+            throw new Error('Empty response from AI');
         }
+
     } catch (error) {
-        console.error("Błąd Asystenta AI:", error);
-        aiModalContent.innerHTML = `<p style="color: var(--danger);">${t.aiModalError}</p>`;
-        showAIModal(false);
+        console.error("Błąd wywołania Asystenta AI:", error);
+        // Wyświetl generyczny komunikat błędu
+        showAiResponse(`<div class="ai-error-message">${t.aiModalError}</div>`);
+    } finally {
+        isAiLoading = false; // Zezwól na ponowne kliknięcie
     }
 }
-// --- KONIEC FUNKCJI ASYSTENTA AI ---
+// --- KONIEC SEKCJI AI ---
 
 
 // Init
@@ -2123,24 +2118,28 @@ function init(){
   clearPersonalDataBtn.addEventListener('click', clearOrCancelPersonalData);
 
   // NOWE LISTENERY MODALA AI
-  aiAssistBtn.addEventListener('click', callAIAssistant);
-  aiModalCloseBtn.addEventListener('click', hideAIModal);
-  aiModal.addEventListener('click', (e) => {
-    // Zamknij modal, jeśli kliknięto tło (overlay)
-    if (e.target === aiModal) {
-      hideAIModal();
-    }
+  aiButton.addEventListener('click', callAiAssistant);
+  aiModalCloseBtn.addEventListener('click', () => aiModalBackdrop.classList.remove('visible'));
+  aiModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === aiModalBackdrop) {
+          aiModalBackdrop.classList.remove('visible');
+      }
   });
+
 
   // Wczytaj preferencje motywu
   let savedTheme = '';
   try { savedTheme = localStorage.getItem('fmd_theme'); } catch(e) {}
   
+  // --- POCZĄTEK ZMIANY: Domyślny tryb ciemny ---
   if (savedTheme) {
+      // Jeśli użytkownik ma coś zapisane (np. 'dark' lub ''), uszanuj to
       document.body.setAttribute('data-theme', savedTheme);
-  } else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+  } else {
+      // Jeśli localStorage jest pusty (pierwsza wizyta), domyślnie ustaw tryb CIEMNY
       document.body.setAttribute('data-theme','dark');
   }
+  // --- KONIEC ZMIANY ---
 
   // Na końcu init, po setLanguage
   loadPersonalData();
@@ -2152,3 +2151,4 @@ init();
 </script>
 </body>
 </html>
+
