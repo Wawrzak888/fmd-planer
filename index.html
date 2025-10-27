@@ -1,0 +1,2154 @@
+<!doctype html>
+<!-- ZMIANA: Dodano atrybut lang dynamicznie -->
+<html lang="pl"> 
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<!-- ZMIANA: Tytuł w karcie przeglądarki będzie ustawiany dynamicznie -->
+<title>Planer Diety Imitującej Post (FMD)</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#fff; --muted:#6b7280;
+    --accent:#0ea5a4; --danger:#ef4444; --ok:#16a34a;
+    --glass: rgba(0,0,0,0.03); /* Zmieniono glass na ciemniejszy w trybie jasnym dla lepszego kontrastu hover */
+  }
+  [data-theme="dark"]{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2;
+    --accent:#2dd4bf; --danger:#fb7185; --ok:#34d399;
+    --glass: rgba(255,255,255,0.05); /* Zwiększono przezroczystość glass dla trybu ciemnego */
+  }
+  *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  html,body{height:100%;}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#e9eef3);padding:20px;color:var(--muted);transition:background .2s,color .2s;}
+  .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:start;}
+  @media (max-width:1000px){.app{grid-template-columns:1fr;}}
+  .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,0.08);border:1px solid rgba(0,0,0,0.03);}
+  header{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
+  /* ZMIANA: Dostosowano line-height dla lepszego wyrównania pionowego */
+  h1{margin:0;font-size:20px;color:var(--accent); line-height: 1.2;} 
+  /* KONIEC ZMIANY */
+  .controls{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  /* Poprawka dla select w label */
+  .controls label { display: flex; align-items: center; gap: 5px; } 
+  .select,button,input[type="number"], input[type="text"]{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:inherit; width: auto; /* Domyślnie auto */}
+  input[type="text"], .add-product-form select { width: 100%; } /* Nadal pełna szerokość dla tych */
+  button { width: auto; } /* Override button width */
+  input[type="number"] { width: 72px; } /* Keep tiny inputs small */
+  .small{font-size:13px;color:var(--muted);}
+  .summary{display:flex;gap:12px;align-items:center;}
+  .stat{background:var(--glass);padding:10px;border-radius:10px;min-width:120px;text-align:center;}
+  .stat strong{display:block;font-size:18px;color:var(--accent);}
+  /* NOWE ETYKIETY W KARTACH STATYSTYK */
+  .stat .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 5px; /* Odstęp dla etykiety "Limit" */
+    line-height: 1;
+  }
+  .stat .stat-label.total {
+    margin-top: 2px; /* Mniejszy odstęp dla "Suma" */
+    margin-bottom: -2px; /* Zbliżenie do liczby */
+  }
+  .stat div[id$="Target"] {
+      margin-top: 0px; /* Zerowanie marginesu dla liczby limitu */
+  }
+  .bars{display:grid;gap:10px;margin-top:12px;}
+  .bar{background:linear-gradient(90deg,#e6eef0,transparent);padding:10px;border-radius:8px;}
+  /* ZMIANA: Poprawka tła pasków w trybie ciemnym dla lepszej widoczności tekstu */
+  [data-theme="dark"] .bar {
+    background:linear-gradient(90deg,rgba(255,255,255,0.04),transparent);
+  }
+  /* KONIEC ZMIANY */
+  .bar .label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:var(--muted);}
+  .bar .track{height:14px;background:#e6eef3;border-radius:8px;overflow:hidden;}
+  /* ZMIANA: Poprawka tła paska postępu w trybie ciemnym */
+  [data-theme="dark"] .bar .track {
+    background: rgba(255,255,255,0.06);
+  }
+  /* KONIEC ZMIANY */
+  .bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .2s;}
+  .bar.warn .fill{background:linear-gradient(90deg,var(--danger),#f97316);}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media (max-width:700px){.grid{grid-template-columns:1fr;}}
+  .product-panel{display:flex;flex-direction:column;gap:10px;}
+  .product-list{max-height:320px;overflow:auto;border-radius:8px;border:1px dashed rgba(0,0,0,0.04);padding:8px;background:linear-gradient(0deg,transparent,rgba(0,0,0,0.01));}
+  .product-item{display:flex;justify-content:space-between;padding:8px;border-radius:8px;align-items:center; transition: background-color 0.2s;} /* Dodano transition */
+  .product-item.blocked{opacity:.45;filter:grayscale(.4);}
+  .product-item button{margin-left:8px;}
+  /* ZMIANA: Dodano styl :hover dla product-item */
+  .product-item:not(.blocked):hover {
+      background-color: var(--glass);
+  }
+  /* KONIEC ZMIANY */
+  /* NOWY STYL: Przycisk usuwania własnego produktu */
+  .delete-custom-btn {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 5px;
+      margin-left: 5px;
+      opacity: 0.6;
+      transition: opacity 0.2s, color 0.2s; /* Dodano color do transition */
+  }
+  .delete-custom-btn:hover {
+      opacity: 1;
+  }
+  .product-item .left { /* Kontener na lewą część (nazwa + makro + przycisk usuń) */
+    display: flex;
+    flex-direction: column;
+  }
+  .product-item .name-line { /* Kontener dla nazwy i przycisku usuwania */
+     display: flex;
+     align-items: center;
+  }
+  /* KONIEC NOWEGO STYLU */
+
+  .plan-table{width:100%;border-collapse:collapse;margin-top:8px;}
+  .plan-table th,.plan-table td{padding:8px;text-align:left;border-bottom:1px solid rgba(0,0,0,0.04);font-size:14px;}
+  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px; flex-wrap: wrap;} /* Dodano flex-wrap */
+  .btn{background:var(--accent);color:#021018;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
+  .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);}
+  .btn.small-btn { padding: 5px 8px; font-size: 12px; } /* NOWY STYL */
+  .warning{padding:10px;border-radius:8px;background:linear-gradient(90deg,rgba(255,230,230,0.6),transparent);color:var(--danger);margin-top:10px;}
+  .muted{color:var(--muted);font-size:13px;}
+  footer{grid-column:1/-1;margin-top:18px;text-align:center;color:var(--muted);font-size:13px;}
+  .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,0.03);font-size:12px;color:var(--muted);margin-right:6px;}
+  /* table responsive */
+  .plan-wrap{max-height:320px;overflow:auto;}
+  /* tiny input */
+  .tiny{width:72px;}
+  .icon{opacity:.8}
+  .tooltip{position:relative;display:inline-block;}
+  .tooltip .tt{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.2);display:none;width:260px;color:var(--muted);font-size:13px;}
+  .tooltip:hover .tt{display:block;}
+
+  /* --- ZMIANA: Style dla rozwijanych kategorii --- */
+  .category-header {
+    font-weight: 600;
+    margin: 8px 0 4px 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none; /* Zapobiega zaznaczaniu tekstu przy klikaniu */
+  }
+  .category-header::before {
+    content: '▼'; /* Strzałka w dół (rozwinięte) - teraz domyślnie zwinięta */
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .category-header.collapsed::before {
+    content: '▶'; /* Strzałka w prawo (zwinięte) */
+    transform: rotate(0deg); /* Opcjonalnie reset rotacji */
+  }
+  .category-items {
+    padding-left: 10px; /* lekkie wcięcie dla produktów */
+    border-left: 1px solid rgba(0,0,0,0.05);
+    margin-left: 10px;
+    overflow: hidden; /* Potrzebne dla płynnej animacji (chociaż tu jej nie ma) */
+    display: block; /* Zmieniono domyślny stan na ukryty */
+  }
+  .category-items.collapsed {
+    display: none; /* Ukryte, gdy kategoria zwinięta */
+  }
+  /* --- KONIEC ZMIANY --- */
+
+  /* --- NOWE: Style dla formularza dodawania produktu --- */
+  .add-product-form {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(0,0,0,0.05);
+  }
+  .add-product-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .add-product-form input,
+  .add-product-form select {
+    margin-bottom: 10px;
+  }
+  .add-product-form .macro-inputs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .add-product-form .macro-inputs input {
+    width: 100%; /* Make macro inputs full width within grid */
+  }
+  .add-product-form button {
+      margin-top: 5px;
+  }
+  /* NOWE STYLE DLA PANELU OSOBOWEGO */
+  #personalDataForm label { 
+    display: block; 
+    margin-bottom: 8px; 
+    font-size: 13px;
+  }
+  #personalDataForm label input { 
+    width: 100%; 
+    margin-top: 2px;
+  }
+  #personalDataForm label input.tiny { 
+    width: 120px; /* Nieco szerszy niż tiny */
+  }
+  #personalDataDisplay p.small {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+  #personalDataDisplay p.small strong {
+    color: var(--muted);
+    font-weight: 600;
+    min-width: 110px;
+    display: inline-block;
+  }
+  /* --- KONIEC NOWYCH STYLÓW --- */
+
+
+  /* --- NOWE STYLE DRUKOWANIA (PDF) --- */
+  @media print {
+    /* Ukryj elementy interfejsu, które nie są potrzebne na wydruku */
+    aside,
+    .product-panel,
+    .add-product-form, /* Ukryj formularz dodawania */
+    .actions,
+    .controls,
+    .tag.tooltip,
+    #themeToggle,
+    #langToggle, /* Ukryj przycisk języka */
+    .delete-custom-btn, /* Ukryj przyciski usuwania */
+    #productSearchInput, /* Ukryj pole wyszukiwania */
+    #aiAssistBtn /* Ukryj przycisk AI */
+    {
+      display: none !important;
+    }
+    
+    /* Ukryj ostatnią kolumnę w tabeli (przyciski "Usuń") */
+    .plan-table th:last-child,
+    .plan-table td:last-child {
+      display: none !important;
+    }
+
+    /* KLUCZOWA ZMIANA: Usuń przewijanie i limit wysokości dla listy planu */
+    .plan-wrap {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    
+    /* Zresetuj layout grida, aby główna kolumna zajęła całą szerokość */
+    .app, .grid {
+      display: block;
+      grid-template-columns: 1fr;
+    }
+    
+    /* Upewnij się, że tło jest białe (drukarki tego oczekują) */
+    body, .card {
+      background: #fff !important;
+      color: #000 !important;
+      box-shadow: none !important;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    
+    h1, .stat strong, .bar .label {
+      color: #000 !important;
+    }
+    
+    /* ZMIANA: Dodaj style dla drukowania tła pasków postępu */
+    .bar .fill {
+        /* Usunięto border */
+        background: linear-gradient(90deg,var(--accent),#60a5fa) !important; /* Przywróć gradient */
+        print-color-adjust: exact !important; /* Wymuś drukowanie tła */
+        -webkit-print-color-adjust: exact !important; /* Wymuś drukowanie tła (Chrome/Safari) */
+    }
+    .bar.warn .fill {
+        background: linear-gradient(90deg,var(--danger),#f97316) !important; /* Przywróć gradient ostrzeżenia */
+    }
+    .bar .track {
+        background: #e6eef3 !important; /* Ustaw jasne tło dla ścieżki */
+         print-color-adjust: exact !important; 
+        -webkit-print-color-adjust: exact !important;
+    }
+    /* KONIEC ZMIANY */
+    
+    /* Upewnij się, że tekst ostrzeżeń jest widoczny */
+    .warning {
+        background: #eee !important;
+        color: #000 !important;
+        border: 1px solid #999;
+    }
+
+    /* Stopka na wydruku */
+    footer {
+        color: #000 !important; /* Zawsze czarny tekst dla lepszej czytelności na wydruku */
+        background: #fff !important; /* Białe tło */
+        border-top: 1px solid #ccc !important;
+    }
+    footer div, footer p, footer strong {
+        color: #000 !important; /* Upewnij się, że wszystkie elementy w stopce są czarne */
+    }
+  }
+  /* --- KONIEC STYLÓW DRUKOWANIA --- */
+
+  /* ZMIANA: Poprawka widoczności przycisków 'ghost' w trybie ciemnym */
+  [data-theme="dark"] .btn.ghost {
+    border-color: rgba(255, 255, 255, 0.2); /* Jaśniejsza ramka */
+    color: var(--muted); /* Jaśniejszy tekst */
+  }
+  [data-theme="dark"] .btn.ghost:hover {
+    background-color: var(--glass);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+  /* --- KONIEC ZMIANY --- */
+
+  /* ZMIANA: Poprawione style stopki dla trybu jasnego i ciemnego */
+  footer {
+    color: #374151; /* Ciemnoszary (prawie czarny) dla tekstu w trybie jasnym */
+    background: transparent;
+  }
+  /* Tytuł "Autor" w trybie jasnym - ma już inline style, ale możemy je wzmocnić */
+  footer div[style*="font-weight: 600"] {
+      color: var(--accent); /* Domyślny (ciemny) accent */
+  }
+  /* Tekst "Zastrzeżenie" w trybie jasnym */
+  footer strong {
+      color: #000; /* Czarny, zgodnie z prośbą */
+  }
+
+  /* Nadpisania dla trybu ciemnego */
+  [data-theme="dark"] footer {
+      color: #b0b8c5 !important; /* Jasnoszary dla tekstu <p> w trybie ciemnym */
+  }
+  /* Tytuł "Autor" w trybie ciemnym */
+  [data-theme="dark"] footer div[style*="font-weight: 600"] {
+      color: var(--accent) !important; /* Jasny accent, tak jak było */
+  }
+  /* Tekst "Zastrzeżenie" w trybie ciemnym */
+  [data-theme="dark"] footer strong {
+      color: #ffffff !important; /* Czysty biały dla maksymalnego kontrastu */
+  }
+  /* --- KONIEC ZMIANY STYLÓW STOPKI --- */
+
+  /* --- NOWE STYLE DLA MODALA AI --- */
+  .ai-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+  .ai-modal {
+    max-width: 500px;
+    width: calc(100% - 40px);
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 1001;
+    /* Użyj zmiennych, aby modal pasował do motywu */
+    background: var(--card); 
+    color: var(--muted);
+    border: 1px solid var(--glass);
+  }
+  .ai-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--glass);
+    padding-bottom: 10px;
+  }
+  .ai-modal-header strong {
+    color: var(--accent);
+    font-size: 1.1rem;
+  }
+  .ai-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0 5px;
+  }
+  .ai-modal-body {
+    padding-top: 15px;
+    min-height: 100px;
+  }
+  /* Style dla odpowiedzi AI */
+  #aiModalContent {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  #aiModalContent strong, #aiModalContent b {
+    color: var(--accent); /* Wyróżnienie */
+    font-weight: 600;
+  }
+  #aiModalContent ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin-top: 10px;
+  }
+  #aiModalContent li {
+    margin-bottom: 8px;
+  }
+  #aiModalContent p {
+    margin-bottom: 10px;
+  }
+
+  /* Loader */
+  .loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  .loader {
+    border: 4px solid var(--glass);
+    border-top: 4px solid var(--accent);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  /* --- KONIEC STYLI MODALA AI --- */
+
+</style>
+</head>
+<body data-theme="">
+<div class="app">
+  <div>
+    <div class="card">
+      <header>
+        <!-- ZMIANA: Tytuł H1 na stronie z data-translate -->
+        <h1 data-translate="headerTitle">Planer Diety Imitującej Post (FMD)</h1>
+        <div class="controls">
+          <!-- ZMIANA: Poprawiona struktura etykiety i selecta -->
+          <label class="small">
+            <span data-translate="dayModeLabel">Tryb dnia:</span> 
+            <select id="dayMode" class="select">
+              <option value="day1" data-translate="day1Option">Dzień 1 — ok. 1090 kcal</option>
+              <option value="days2to5" data-translate="days2to5Option">Dni 2–5 — ok. 730 kcal</option>
+            </select>
+          </label>
+          <!-- KONIEC ZMIANY -->
+          <!-- NOWY PRZYCISK JĘZYKA -->
+          <button id="langToggle" class="select" title="Zmień język / Change language">PL / EN</button>
+          <button id="themeToggle" class="select" title="Przełącz tryb jasny/ciemny">🌗</button>
+        </div>
+      </header>
+
+      <!-- ZMIANA: DODANO ETYKIETY W KARTACH STATYSTYK I data-translate -->
+      <div class="summary">
+        <div class="stat">
+          <div class="small" data-translate="kcalLabel">Kcal</div>
+          <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
+          <strong id="kcalTotal">0</strong>
+          <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
+          <div class="muted" id="kcalTarget">/ 1092 kcal</div> 
+        </div>
+        <div class="stat">
+          <div class="small" data-translate="proteinLabel">Białko (g)</div>
+          <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
+          <strong id="proteinTotal">0 g</strong>
+          <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
+          <div class="muted" id="proteinTarget">/ 28 g</div> 
+        </div>
+        <div class="stat">
+          <div class="small" data-translate="fatLabel">Tłuszcze (g)</div>
+          <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
+          <strong id="fatTotal">0 g</strong>
+          <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
+          <div class="muted" id="fatTarget">/ 68 g</div> 
+        </div>
+        <div class="stat">
+          <div class="small" data-translate="carbsLabel">Węglowodany (g)</div>
+          <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
+          <strong id="carbTotal">0 g</strong>
+          <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
+          <div class="muted" id="carbTarget">/ 92 g</div> 
+        </div>
+      </div>
+      <!-- KONIEC ZMIANY -->
+
+      <div class="bars" style="margin-top:14px;">
+        <div id="barProtein" class="bar">
+          <div class="label"><span data-translate="proteinLabelShort">Białko</span><span id="barProteinText">0 g</span></div>
+          <div class="track"><div class="fill" style="width:0%"></div></div>
+        </div>
+        <div id="barFat" class="bar">
+          <div class="label"><span data-translate="fatLabelShort">Tłuszcze</span><span id="barFatText">0 g</span></div>
+          <div class="track"><div class="fill" style="width:0%"></div></div>
+        </div>
+        <div id="barCarb" class="bar">
+          <div class="label"><span data-translate="carbsLabelShort">Węglowodany</span><span id="barCarbText">0 g</span></div>
+          <div class="track"><div class="fill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;" class="muted small">
+        <span class="tag" data-translate="tagGramsRule">Reguła bezwzględna: licz w gramach</span>
+        <span class="tag" data-translate="tagProteinWarning">Uwaga: białko > limit przerywa post</span>
+        <span class="tag tooltip" data-translate="tagWhatIsFMD">Co to jest FMD?<span class="tt" data-translate="tooltipFMD">FMD to dieta naśladująca post: cykl 5 dni. Krytyczne: niskie białko (roślinne), tłuszcze nienasycone i niskoglikemiczne węglowodany. Zawsze konsultuj z lekarzem przy schorzeniach.</span></span>
+      </div>
+
+      <div style="margin-top:12px;" class="grid">
+        <div class="product-panel card">
+          <!-- ZMIANA: Poprawiona struktura nagłówka listy produktów + data-translate -->
+          <div style="display:flex; flex-direction: column; align-items: flex-start; margin-bottom: 5px;">
+             <div class="small muted" style="margin-bottom: 4px;" data-translate="clickToAdd">Kliknij "Dodaj" aby ustawić gramaturę</div>
+             <strong data-translate="productListTitle">Lista produktów (do wyboru)</strong>
+          </div>
+          <!-- KONIEC ZMIANY -->
+          
+          <!-- NOWE POLE WYSZUKIWANIA -->
+          <input type="text" id="productSearchInput" class="select" data-translate-placeholder="productSearchPlaceholder" placeholder="Wyszukaj produkt..." style="width: 100%; margin-bottom: 10px;">
+          <!-- KONIEC NOWEGO POLA -->
+
+          <div class="product-list" id="productList">
+            <!-- dynamic -->
+          </div>
+          <!-- NOWY: Formularz dodawania własnego produktu -->
+          <div class="add-product-form">
+            <strong data-translate="addCustomProductTitle">Dodaj własny produkt</strong>
+            <!-- ZMIANA: Dodano span dla tekstu etykiety -->
+            <label>
+                <span data-translate="customProductNameLabel">Nazwa produktu:</span>
+                <input type="text" id="customProductName" data-translate-placeholder="customProductNamePlaceholder" placeholder="np. Seler naciowy">
+            </label>
+            <!-- ZMIANA: Dodano span dla tekstu etykiety -->
+            <label>
+                <span data-translate="customProductCategoryLabel">Kategoria:</span>
+                <select id="customProductCategory" class="select"></select> <!-- Kategorie będą dodane dynamicznie -->
+            </label>
+            <!-- ZMIANA: Dodano span dla tekstu etykiety -->
+            <label>
+                <span data-translate="customProductMacrosLabel">Makroskładniki (na 100g):</span>
+            </label>
+            <!-- KONIEC ZMIAN -->
+            <div class="macro-inputs">
+                <input type="number" id="customProductProtein" data-translate-placeholder="customProductProteinPlaceholder" placeholder="Białko (g)" min="0" step="0.1">
+                <input type="number" id="customProductFat" data-translate-placeholder="customProductFatPlaceholder" placeholder="Tłuszcz (g)" min="0" step="0.1">
+                <input type="number" id="customProductCarbs" data-translate-placeholder="customProductCarbsPlaceholder" placeholder="Węgl. (g)" min="0" step="0.1">
+            </div>
+            <button id="addCustomProductBtn" class="btn ghost" data-translate="addCustomProductBtn">Dodaj produkt</button>
+            <div id="customProductMsg" class="small muted" style="margin-top: 5px;"></div>
+          </div>
+          <!-- KONIEC NOWEGO FORMULARZA -->
+        </div>
+
+        <div class="card">
+          <strong data-translate="planTitle">Plan dnia</strong>
+          <div class="plan-wrap">
+            <table class="plan-table" id="planTable">
+              <thead>
+                <!-- Tłumaczenie nagłówków tabeli byłoby w JS przy renderowaniu -->
+                <tr><th>Produkt</th><th>g</th><th>kcal</th><th>B (g)</th><th>T (g)</th><th>W (g)</th><th></th></tr>
+              </thead>
+              <tbody id="planBody">
+                <!-- dynamic -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="actions">
+            <button id="saveBtn" class="btn ghost" data-translate="saveButton">Zapisz plan</button>
+            <button id="clearBtn" class="btn ghost" data-translate="clearButton">Wyczyść plan</button>
+            <!-- NOWY PRZYCISK AI -->
+            <button id="aiAssistBtn" class="btn" style="background-color: #8b5cf6; color: #fff;" title="Użyj AI, aby zasugerować produkty do zbilansowania planu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="icon" viewBox="0 0 16 16" style="display: inline-block; vertical-align: text-bottom; margin-right: 5px;">
+                <path d="M8 1.5c1.3 0 2.5.6 3.3 1.7A4.8 4.8 0 0 1 13 8a4.8 4.8 0 0 1-1.7 3.8c-.8 1-2 1.7-3.3 1.7s-2.5-.6-3.3-1.7A4.8 4.8 0 0 1 3 8a4.8 4.8 0 0 1 1.7-3.8c.8-1 2-1.7 3.3-1.7M8 0a6.3 6.3 0 0 0-4.6 1.8A6.3 6.3 0 0 0 1.5 8c0 2 .7 3.7 1.9 4.9A6.3 6.3 0 0 0 8 14.7c2 0 3.7-.7 4.9-1.9A6.3 6.3 0 0 0 14.5 8a6.3 6.3 0 0 0-1.9-4.9A6.3 6.3 0 0 0 8 0m-.5 5.9h.4l.4.8.4-.8h.4v3.1h-.4V6.8l-.4.8h-.4l-.4-.8v2.2h-.4zM5.2 5.9h.4v3.1h-.4zM9.3 5.9h.4v3.1h-.4zM6.9 5.9h.4v3.1h-.4z"/>
+              </svg>
+              <span data-translate="aiAssistButton">Asystent AI</span>
+            </button>
+            <button id="exportBtn" class="btn" data-translate="printButton">Drukuj / Eksportuj do PDF</button>
+          </div>
+
+          <div id="alerts"></div>
+
+          <!-- NOWY: Panel Danych Osobowych -->
+          <div id="personalPanel" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.05);">
+            <strong data-translate="personalPanelTitle">Mój Panel Postu</strong>
+            
+            <!-- Widok wyświetlania -->
+            <div id="personalDataDisplay" style="margin-top: 10px;">
+              <p class="small"><strong><span data-translate="personalName">Imię/Nazwisko</span>:</strong> <span id="displayName">--</span></p>
+              <p class="small"><strong><span data-translate="personalStartDate">Data startu</span>:</strong> <span id="displayStartDate">--</span></p>
+              <p class="small"><strong><span data-translate="personalStartWeight">Waga startowa</span>:</strong> <span id="displayStartWeight">--</span></p>
+              <p class="small"><strong><span data-translate="personalEndWeight">Waga końcowa</span>:</strong> <span id="displayEndWeight">--</span></p>
+            </div>
+
+            <!-- Widok formularza (edycja) -->
+            <div id="personalDataForm" style="display: none; margin-top: 10px;">
+              <label class="small"><span data-translate="personalName">Imię/Nazwisko</span>:
+                <input type="text" id="inputName" class="select">
+              </label>
+              <label class="small"><span data-translate="personalStartDate">Data startu</span>:
+                <input type="date" id="inputStartDate" class="select">
+              </label>
+              <label class="small"><span data-translate="personalStartWeight">Waga startowa (kg)</span>:
+                <input type="number" id="inputStartWeight" class="select tiny" step="0.1" placeholder="np. 80.5">
+              </label>
+              <label class="small"><span data-translate="personalEndWeight">Waga końcowa (kg)</span>:
+                <input type="number" id="inputEndWeight" class="select tiny" step="0.1" placeholder="np. 78.0">
+              </label>
+            </div>
+
+            <!-- Przyciski akcji dla panelu -->
+            <div class="actions" style="margin-top: 10px; justify-content: flex-start;">
+              <button id="editPersonalDataBtn" class="btn ghost small-btn" data-translate="personalEditBtn">Edytuj</button>
+              <button id="savePersonalDataBtn" class="btn small-btn" data-translate="personalSaveBtn" style="display: none;">Zapisz</button>
+              <button id="clearPersonalDataBtn" class="btn ghost small-btn" data-translate="personalClearBtn" style="margin-left: auto;">Wyczyść dane</button>
+            </div>
+          </div>
+          <!-- KONIEC Panelu Danych Osobowych -->
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ZMIANA: Zaktualizowana i sformatowana stopka + data-translate -->
+    <footer class="muted" style="text-align: left; max-width: 900px; margin: 20px auto; padding: 15px; border-top: 1px solid rgba(0,0,0,0.05); font-size: 12px;">
+      <div style="font-weight: 600; margin-bottom: 8px; color: var(--accent);" data-translate="footerAuthor">Autor kalkulatora: Tomasz Wawrzak</div>
+      <p style="margin-bottom: 8px;" data-translate="footerDescription1">Narzędzie jest prototypem opartym na publicznie dostępnych informacjach dotyczących protokołu Diety Naśladującej Post (FMD), którego autorem jest dr Valter Longo (University of Southern California).</p>
+      <p style="margin-bottom: 8px;" data-translate="footerDescription2">Przybliżone wartości makroskładników bazują na ogólnodostępnych bazach danych (m.in. polskie tabele Instytutu Żywności i Żywienia (IŻŻ), USDA FoodData Central) i mogą różnić się od rzeczywistych wartości w zależności od produktu.</p>
+      <p style="font-weight: 600; margin-top: 10px;"><strong data-translate="footerDisclaimerTitle">Zastrzeżenie (Disclaimer):</strong> <span data-translate="footerDisclaimerText">Ten prototyp jest wyłącznie narzędziem pomocniczym i nie zastępuje profesjonalnej porady lekarskiej ani dietetycznej. Zawsze konsultuj z lekarzem rozpoczęcie diety lub zmianę planu żywieniowego, szczególnie przy istniejących schorzeniach.</span></p>
+    </footer>
+    <!-- KONIEC ZMIANY STOPKI -->
+
+  </div>
+
+  <aside>
+    <div class="card">
+      <strong data-translate="asideTitle">Ustawienia i info</strong>
+      <div style="margin-top:8px;" class="muted small">
+        <p><strong data-translate="asideLimitsTitle">Limity (zmieniane dynamicznie):</strong></p>
+        <ul>
+          <li data-translate="asideLimitsDay1">Dzień 1 — ok. 1090 kcal: Białko ≤ 28 g, Tłuszcze ≤ 68 g, Węglowodany ≤ 92 g</li>
+          <li data-translate="asideLimitsDay2to5">Dni 2–5 — ok. 730 kcal: Białko ≤ 16 g, Tłuszcze ≤ 35 g, Węglowodany ≤ 88 g</li>
+        </ul>
+      </div>
+
+      <div style="margin-top:8px;">
+        <label class="small" data-translate="asideSuggestionsLabel">Szybkie sugestie:
+          <select id="suggestions" class="select">
+             <!-- Opcje sugestii mogą wymagać dynamicznego tłumaczenia -->
+            <option value="" data-translate="asideSuggestionsOptionDefault">— wybierz sugestię —</option>
+            <option value="safeFat" data-translate="asideSuggestionsOptionFat">Dodaj 10 g oliwy (bezpieczne tłuszcze)</option>
+            <option value="lowProteinVeg" data-translate="asideSuggestionsOptionVeg">Dodaj 100 g brokuła (niskie białko)</option>
+            <option value="smallSnack" data-translate="asideSuggestionsOptionSnack">Dodaj 15 g orzechów (mała przekąska)</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="margin-top:10px;">
+        <strong data-translate="asideCriticalTitle">Wyjaśnienie krytyczne</strong>
+        <p class="muted small" data-translate="asideCriticalText">W protokole FMD kluczowe jest utrzymanie <em>bezwzględnego</em> spożycia białka poniżej limitu (szczególnie dni 2–5). Ten kalkulator pokazuje absolutne wartości w gramach oraz ostrzeżenia przy przekroczeniu.</p>
+      </div>
+
+      <!-- ZMIANA: DODANA SEKCJA O KORZYŚCIACH FMD -->
+      <div style="margin-top:10px;">
+        <strong data-translate="asideBenefitsTitle">Oczekiwane cele biologiczne</strong>
+        <p class="muted small" style="margin-bottom: 5px;" data-translate="asideBenefitsIntro">Badania nad FMD sugerują następujące potencjalne korzyści:</p>
+        <ul class="muted small" style="margin: 4px 0 0 16px; padding: 0; list-style-type: disc;">
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitAge"><strong>Odmłodzenie wieku biologicznego:</strong> Badania kliniczne (USC, 2024) wykazały, że kilka cykli FMD obniżyło wiek biologiczny uczestników średnio o 2.5 roku.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitAutophagy"><strong>Stymulacja autofagii:</strong> Regeneracja i usuwanie uszkodzonych komórek.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitFat"><strong>Redukcja tkanki tłuszczowej:</strong> Utrata wagi (głównie tłuszczu brzusznego) przy ochronie mięśni.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitMetabolic"><strong>Poprawa metaboliczna:</strong> Lepsza wrażliwość na insulinę, regulacja glukozy, cholesterolu i ciśnienia.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitImmunity"><strong>Wsparcie odporności:</strong> Redukcja stanów zapalnych.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitCognitive"><strong>Wsparcie funkcji poznawczych:</strong> Potencjalna poprawa koncentracji i pamięci.</li>
+          <li style="margin-bottom: 4px;" data-translate="asideBenefitStress"><strong>Zwiększona odporność na stres:</strong> Lepsza adaptacja organizmu.</li>
+        </ul>
+      </div>
+      <!-- KONIEC ZMIANY -->
+      
+      <!-- ZMIANA: Aktualizacja tekstu o produktach wykluczonych + data-translate -->
+      <div style="margin-top:10px;">
+        <strong data-translate="asideExcludedTitle">Produkty wykluczone</strong>
+        <div class="muted small" data-translate="asideExcludedText">
+          Należy bezwzględnie unikać: mięsa, ryb, jaj, nabiału, cukrów dodanych, rafinowanych węglowodanów (np. <strong>białego ryżu, makaronów</strong>, białego pieczywa), tłuszczów nasyconych i przetworzonych.
+        </div>
+      </div>
+      <!-- KONIEC ZMIANY -->
+    </div>
+  </aside>
+</div>
+
+<!-- NOWY MODAL AI -->
+<div id="aiModal" class="ai-modal-overlay" style="display: none;">
+  <div class="ai-modal card">
+    <div class="ai-modal-header">
+      <strong data-translate="aiModalTitle">Asystent Diety AI 🤖</strong>
+      <button id="aiModalCloseBtn" class="ai-modal-close-btn">&times;</button>
+    </div>
+    <div class="ai-modal-body">
+      <div id="aiModalLoader" class="loader-container" style="display: none;">
+        <div class="loader"></div>
+        <p data-translate="aiModalLoading">Myślę... Analizuję Twój plan...</p>
+      </div>
+      <div id="aiModalContent">
+        <!-- AI response will be injected here -->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- KONIEC MODALA AI -->
+
+<script>
+/*
+  Kalkulator FMD (prototyp):
+  - i18n implementation started
+  - AI Assistant (Vercel Backend)
+*/
+
+// --- NOWA STRUKTURA TŁUMACZEŃ ---
+const translations = {
+    pl: {
+        pageTitle: "Planer Diety Imitującej Post (FMD)",
+        headerTitle: "Planer Diety Imitującej Post (FMD)",
+        dayModeLabel: "Tryb dnia:",
+        day1Option: "Dzień 1 — ok. 1090 kcal",
+        days2to5Option: "Dni 2–5 — ok. 730 kcal",
+        kcalLabel: "Kcal",
+        proteinLabel: "Białko (g)",
+        fatLabel: "Tłuszcze (g)",
+        carbsLabel: "Węglowodany (g)",
+        sumFromPlan: "Suma z planu",
+        refLimit: "Limit referencyjny",
+        proteinLabelShort: "Białko",
+        fatLabelShort: "Tłuszcze",
+        carbsLabelShort: "Węglowodany",
+        tagGramsRule: "Reguła bezwzględna: licz w gramach",
+        tagProteinWarning: "Uwaga: białko > limit przerywa post",
+        tagWhatIsFMD: "Co to jest FMD?",
+        tooltipFMD: "FMD to dieta naśladująca post: cykl 5 dni. Krytyczne: niskie białko (roślinne), tłuszcze nienasycone i niskoglikemiczne węglowodany. Zawsze konsultuj z lekarzem przy schorzeniach.",
+        clickToAdd: "Kliknij \"Dodaj\" aby ustawić gramaturę",
+        productListTitle: "Lista produktów (do wyboru)",
+        productSearchPlaceholder: "Wyszukaj produkt...", // NOWE TŁUMACZENIE
+        addCustomProductTitle: "Dodaj własny produkt",
+        customProductNameLabel: "Nazwa produktu:",
+        customProductNamePlaceholder: "np. Seler naciowy",
+        customProductCategoryLabel: "Kategoria:",
+        customProductMacrosLabel: "Makroskładniki (na 100g):",
+        customProductProteinPlaceholder: "Białko (g)",
+        customProductFatPlaceholder: "Tłuszcz (g)",
+        customProductCarbsPlaceholder: "Węgl. (g)",
+        addCustomProductBtn: "Dodaj produkt",
+        planTitle: "Plan dnia",
+        saveButton: "Zapisz plan",
+        clearButton: "Wyczyść plan",
+        printButton: "Drukuj / Eksportuj do PDF",
+        footerAuthor: "Autor kalkulatora: Tomasz Wawrzak",
+        footerDescription1: "Narzędzie jest prototypem opartym na publicznie dostępnych informacjach dotyczących protokołu Diety Naśladującej Post (FMD), którego autorem jest dr Valter Longo (University of Southern California).",
+        footerDescription2: "Przybliżone wartości makroskładników bazują na ogólnodostępnych bazach danych (m.in. polskie tabele Instytutu Żywności i Żywienia (IŻŻ), USDA FoodData Central) i mogą różnić się od rzeczywistych wartości w zależności od produktu.",
+        footerDisclaimerTitle: "Zastrzeżenie (Disclaimer):",
+        footerDisclaimerText: "Ten prototyp jest wyłącznie narzędziem pomocniczym i nie zastępuje profesjonalnej porady lekarskiej ani dietetycznej. Zawsze konsultuj z lekarzem rozpoczęcie diety lub zmianę planu żywieniowego, szczególnie przy istniejących schorzeniach.",
+        asideTitle: "Ustawienia i info",
+        asideLimitsTitle: "Limity (zmieniane dynamicznie):",
+        asideLimitsDay1: "Dzień 1 — ok. 1090 kcal: Białko ≤ 28 g, Tłuszcze ≤ 68 g, Węglowodany ≤ 92 g",
+        asideLimitsDay2to5: "Dni 2–5 — ok. 730 kcal: Białko ≤ 16 g, Tłuszcze ≤ 35 g, Węglowodany ≤ 88 g",
+        asideSuggestionsLabel: "Szybkie sugestie:",
+        asideSuggestionsOptionDefault: "— wybierz sugestię —",
+        asideSuggestionsOptionFat: "Dodaj 10 g oliwy (bezpieczne tłuszcze)",
+        asideSuggestionsOptionVeg: "Dodaj 100 g brokuła (niskie białko)",
+        asideSuggestionsOptionSnack: "Dodaj 15 g orzechów (mała przekąska)",
+        asideCriticalTitle: "Wyjaśnienie krytyczne",
+        asideCriticalText: "W protokole FMD kluczowe jest utrzymanie bezwzględnego spożycia białka poniżej limitu (szczególnie dni 2–5). Ten kalkulator pokazuje absolutne wartości w gramach oraz ostrzeżenia przy przekroczeniu.",
+        asideBenefitsTitle: "Oczekiwane cele biologiczne",
+        asideBenefitsIntro: "Badania nad FMD sugerują następujące potencjalne korzyści:",
+        asideBenefitAge: "Odmłodzenie wieku biologicznego: Badania kliniczne (USC, 2024) wykazały, że kilka cykli FMD obniżyło wiek biologiczny uczestników średnio o 2.5 roku.",
+        asideBenefitAutophagy: "Stymulacja autofagii: Regeneracja i usuwanie uszkodzonych komórek.",
+        asideBenefitFat: "Redukcja tkanki tłuszczowej: Utrata wagi (głównie tłuszczu brzusznego) przy ochronie mięśni.",
+        asideBenefitMetabolic: "Poprawa metaboliczna: Lepsza wrażliwość na insulinę, regulacja glukozy, cholesterolu i ciśnienia.",
+        asideBenefitImmunity: "Wsparcie odporności: Redukcja stanów zapalnych.",
+        asideBenefitCognitive: "Wsparcie funkcji poznawczych: Potencjalna poprawa koncentracji i pamięci.",
+        asideBenefitStress: "Zwiększona odporność na stres: Lepsza adaptacja organizmu.",
+        asideExcludedTitle: "Produkty wykluczone",
+        asideExcludedText: "Należy bezwzględnie unikać: mięsa, ryb, jaj, nabiału, cukrów dodanych, rafinowanych węglowodanów (np. białego ryżu, makaronów, białego pieczywa), tłuszczów nasyconych i przetworzonych.",
+        // Komunikaty JS
+        msgPlanSaved: "Plan zapisany lokalnie w przeglądarce.",
+        msgConfirmClear: "Na pewno? (Kliknij ponownie)",
+        msgProductAdded: "Produkt \"{name}\" dodany!",
+        msgProductDeleted: "Produkt \"{name}\" usunięty.",
+        errorProductNameEmpty: "Nazwa produktu nie może być pusta.",
+        errorProductMacrosInvalid: "Wartości B/T/W muszą być liczbami nieujemnymi.",
+        errorProductCategoryMissing: "Wybierz kategorię.",
+        // NOWE TŁUMACZENIA AI
+        aiAssistButton: "Asystent AI",
+        aiModalTitle: "Asystent Diety AI 🤖",
+        aiModalLoading: "Myślę... Analizuję Twój plan...",
+        aiModalError: "Przepraszam, wystąpił błąd podczas łączenia z Asystentem AI. Spróbuj ponownie później.",
+        // Nagłówki tabeli Planu Dnia
+        planTableHeaderProduct: "Produkt",
+        planTableHeaderGrams: "g",
+        planTableHeaderKcal: "kcal",
+        planTableHeaderProtein: "B (g)",
+        planTableHeaderFat: "T (g)",
+        planTableHeaderCarbs: "W (g)",
+        // Przyciski w listach
+        btnAdd: "Dodaj",
+        btnDelete: "Usuń",
+        productExcluded: "Wykluczony",
+        // Paski postępu
+        progressLabelProtein: "Białko",
+        progressLabelFat: "Tłuszcze",
+        progressLabelCarbs: "Węglowodany",
+        progressLabelFrom: "z", // np. 10g z 28g
+        // Ostrzeżenia
+        warnProteinOverLimit: "<strong>Uwaga:</strong> Białko przekracza limit {limit} g — to przerwie post metaboliczny.",
+        warnKcalOverLimit: "<strong>Uwaga:</strong> Całkowita liczba kalorii ({kcal} kcal) przekracza limit {limit} kcal dla wybranego trybu.",
+        hintProteinNearLimit: "Zbliżasz się do limitu białka — rozważ zamianę produktów na niskobiałkowe warzywa lub tłuszcze roślinne.",
+        // NOWE: Panel Osobowy
+        personalPanelTitle: "Mój Panel Postu",
+        personalName: "Imię/Nazwisko",
+        personalStartDate: "Data startu",
+        personalStartWeight: "Waga startowa",
+        personalEndWeight: "Waga końcowa",
+        personalEditBtn: "Edytuj",
+        personalSaveBtn: "Zapisz",
+        personalClearBtn: "Wyczyść dane",
+        personalCancelBtn: "Anuluj",
+        // Kategorie
+        cat_unsatFats: "Tłuszcze nienasycone",
+        cat_complexCarbs: "Węglowodany złożone",
+        cat_lowStarchVeg: "Warzywa niskoskrobiowe",
+        cat_fruits: "Owoce",
+        cat_liquidsSupps: "Płyny i suplementy",
+        // Nazwy produktów
+        olive_oil_name: "Oliwa z oliwek",
+        almonds_name: "Orzechy migdały",
+        seeds_mixture_name: "Nasiona mieszane",
+        algal_oil_name: "Olej z alg (omega-3)",
+        avocado_name: "Awokado (Hass)",
+        quinoa_name: "Quinoa (ugotowana)",
+        brown_rice_name: "Ryż brązowy (ugotowany)",
+        farro_name: "Farro (ugotowane)",
+        lentils_name: "Soczewica (ugotowana)",
+        cabbage_white_name: "Kapusta biała (surowa)",
+        cabbage_napa_name: "Kapusta pekińska (surowa)",
+        spinach_name: "Szpinak (surowy)",
+        broccoli_name: "Brokuł (surowy)",
+        kale_name: "Jarmuż (surowy)",
+        lettuce_iceberg_name: "Sałata lodowa",
+        cucumber_name: "Ogórek (ze skórką)",
+        tomato_name: "Pomidor",
+        pepper_red_name: "Papryka czerwona",
+        cauliflower_name: "Kalafior (surowy)",
+        zucchini_name: "Cukinia (surowa)",
+        asparagus_name: "Szparagi (surowe)",
+        green_beans_name: "Zielona fasolka (surowa)",
+        eggplant_name: "Bakłażan (surowy)",
+        mushrooms_name: "Pieczarki (surowe)",
+        carrot_name: "Marchew (surowa)",
+        raspberries_name: "Maliny",
+        strawberries_name: "Truskawki",
+        blueberries_name: "Jagody / Borówki",
+        apple_name: "Jabłko (ze skórką)",
+        orange_name: "Pomarańcza",
+        pear_name: "Gruszka",
+        kiwi_name: "Kiwi",
+        peach_name: "Brzoskwinia",
+        water_name: "Woda",
+        herbal_tea_name: "Herbata ziołowa (bez cukru)",
+        veg_broth_name: "Bulion roślinny (lekki)",
+        veg_powder_name: "Proszek warzywny (porcja 10g)",
+        l_drink_name: "L-drink (komercyjny, porcja 30g)",
+    },
+    en: {
+        pageTitle: "Fasting Mimicking Diet (FMD) Planner",
+        headerTitle: "Fasting Mimicking Diet (FMD) Planner",
+        dayModeLabel: "Day mode:",
+        day1Option: "Day 1 — approx. 1090 kcal",
+        days2to5Option: "Days 2–5 — approx. 730 kcal",
+        kcalLabel: "Kcal",
+        proteinLabel: "Protein (g)",
+        fatLabel: "Fat (g)",
+        carbsLabel: "Carbs (g)",
+        sumFromPlan: "Plan total",
+        refLimit: "Reference limit",
+        proteinLabelShort: "Protein",
+        fatLabelShort: "Fat",
+        carbsLabelShort: "Carbs",
+        tagGramsRule: "Absolute rule: measure in grams",
+        tagProteinWarning: "Note: protein > limit breaks the fast",
+        tagWhatIsFMD: "What is FMD?",
+        tooltipFMD: "FMD is a fasting mimicking diet: 5-day cycle. Critical: low (plant-based) protein, unsaturated fats & low-glycemic carbs. Always consult your doctor, especially with pre-existing conditions.",
+        clickToAdd: "Click \"Add\" to set the weight",
+        productListTitle: "Product list (choose from)",
+        productSearchPlaceholder: "Search for product...", // NEW TRANSLATION
+        addCustomProductTitle: "Add custom product",
+        customProductNameLabel: "Product name:",
+        customProductNamePlaceholder: "e.g. Celery stalk",
+        customProductCategoryLabel: "Category:",
+        customProductMacrosLabel: "Macronutrients (per 100g):",
+        customProductProteinPlaceholder: "Protein (g)",
+        customProductFatPlaceholder: "Fat (g)",
+        customProductCarbsPlaceholder: "Carbs (g)",
+        addCustomProductBtn: "Add product",
+        planTitle: "Daily plan",
+        saveButton: "Save plan",
+        clearButton: "Clear plan",
+        printButton: "Print / Export to PDF",
+        footerAuthor: "Calculator author: Tomasz Wawrzak",
+        footerDescription1: "This tool is a prototype based on publicly available information regarding the Fasting Mimicking Diet (FMD) protocol, developed by Dr. Valter Longo (University of Southern California).",
+        footerDescription2: "Approximate macronutrient values are based on publicly available databases (incl. Polish Food Composition Tables by IŻŻ, USDA FoodData Central) and may differ from actual values depending on the product.",
+        footerDisclaimerTitle: "Disclaimer:",
+        footerDisclaimerText: "This prototype is solely an auxiliary tool and does not substitute professional medical or dietary advice. Always consult with a doctor before starting a diet or changing your eating plan, especially with pre-existing health conditions.",
+        asideTitle: "Settings & Info",
+        asideLimitsTitle: "Limits (dynamically changed):",
+        asideLimitsDay1: "Day 1 — approx. 1090 kcal: Protein ≤ 28 g, Fat ≤ 68 g, Carbs ≤ 92 g",
+        asideLimitsDay2to5: "Days 2–5 — approx. 730 kcal: Protein ≤ 16 g, Fat ≤ 35 g, Carbs ≤ 88 g",
+        asideSuggestionsLabel: "Quick suggestions:",
+        asideSuggestionsOptionDefault: "— select suggestion —",
+        asideSuggestionsOptionFat: "Add 10 g olive oil (safe fats)",
+        asideSuggestionsOptionVeg: "Add 100 g broccoli (low protein)",
+        asideSuggestionsOptionSnack: "Add 15 g nuts (small snack)",
+        asideCriticalTitle: "Critical explanation",
+        asideCriticalText: "In the FMD protocol, keeping the absolute protein intake below the limit (especially on days 2-5) is crucial. This calculator shows absolute values in grams and warnings when limits are exceeded.",
+        asideBenefitsTitle: "Expected biological goals",
+        asideBenefitsIntro: "Research on FMD suggests the following potential benefits:",
+        asideBenefitAge: "Biological age reversal: Clinical studies (USC, 2024) showed that several FMD cycles reduced participants' biological age by an average of 2.5 years.",
+        asideBenefitAutophagy: "Autophagy stimulation: Regeneration and removal of damaged cells.",
+        asideBenefitFat: "Fat reduction: Weight loss (mainly visceral fat) while preserving muscle mass.",
+        asideBenefitMetabolic: "Metabolic improvement: Better insulin sensitivity, regulation of glucose, cholesterol, and blood pressure.",
+        asideBenefitImmunity: "Immune support: Reduction of inflammation.",
+        asideBenefitCognitive: "Cognitive function support: Potential improvement in concentration and memory.",
+        asideBenefitStress: "Increased stress resistance: Better body adaptation.",
+        asideExcludedTitle: "Excluded products",
+        asideExcludedText: "Strictly avoid: meat, fish, eggs, dairy, added sugars, refined carbohydrates (e.g., white rice, pasta, white bread), saturated and processed fats.",
+        // JS Messages
+        msgPlanSaved: "Plan saved locally in the browser.",
+        msgConfirmClear: "Are you sure? (Click again)",
+        msgProductAdded: "Product \"{name}\" added!",
+        msgProductDeleted: "Product \"{name}\" deleted.",
+        errorProductNameEmpty: "Product name cannot be empty.",
+        errorProductMacrosInvalid: "P/F/C values must be non-negative numbers.",
+        errorProductCategoryMissing: "Select a category.",
+        // NEW AI TRANSLATIONS
+        aiAssistButton: "AI Assistant",
+        aiModalTitle: "AI Diet Assistant 🤖",
+        aiModalLoading: "Thinking... Analyzing your plan...",
+        aiModalError: "Sorry, an error occurred while contacting the AI Assistant. Please try again later.",
+        // Table Headers
+        planTableHeaderProduct: "Product",
+        planTableHeaderGrams: "g",
+        planTableHeaderKcal: "kcal",
+        planTableHeaderProtein: "P (g)",
+        planTableHeaderFat: "F (g)",
+        planTableHeaderCarbs: "C (g)",
+        // List Buttons
+        btnAdd: "Add",
+        btnDelete: "Delete",
+        productExcluded: "Excluded",
+        // Progress Bars
+        progressLabelProtein: "Protein",
+        progressLabelFat: "Fat",
+        progressLabelCarbs: "Carbs",
+        progressLabelFrom: "of", // e.g. 10g of 28g
+        // Warnings
+        warnProteinOverLimit: "<strong>Warning:</strong> Protein exceeds the limit of {limit} g — this will break the metabolic fast.",
+        warnKcalOverLimit: "<strong>Warning:</strong> Total calories ({kcal} kcal) exceed the limit of {limit} kcal for the selected mode.",
+        hintProteinNearLimit: "You are approaching the protein limit — consider replacing products with low-protein vegetables or plant-based fats.",
+        // NEW: Personal Panel
+        personalPanelTitle: "My Fasting Panel",
+        personalName: "Name/Surname",
+        personalStartDate: "Start Date",
+        personalStartWeight: "Start Weight",
+        personalEndWeight: "End Weight",
+        personalEditBtn: "Edit",
+        personalSaveBtn: "Save",
+        personalClearBtn: "Clear Data",
+        personalCancelBtn: "Cancel",
+        // Categories
+        cat_unsatFats: "Unsaturated fats",
+        cat_complexCarbs: "Complex carbohydrates",
+        cat_lowStarchVeg: "Low-starch vegetables",
+        cat_fruits: "Fruits",
+        cat_liquidsSupps: "Liquids & supplements",
+         // Product Names
+        olive_oil_name: "Olive Oil",
+        almonds_name: "Almonds",
+        seeds_mixture_name: "Mixed Seeds",
+        algal_oil_name: "Algal Oil (omega-3)",
+        avocado_name: "Avocado (Hass)",
+        quinoa_name: "Quinoa (cooked)",
+        brown_rice_name: "Brown Rice (cooked)",
+        farro_name: "Farro (cooked)",
+        lentils_name: "Lentils (cooked)",
+        cabbage_white_name: "White Cabbage (raw)",
+        cabbage_napa_name: "Napa Cabbage (raw)",
+        spinach_name: "Spinach (raw)",
+        broccoli_name: "Broccoli (raw)",
+        kale_name: "Kale (raw)",
+        lettuce_iceberg_name: "Iceberg Lettuce",
+        cucumber_name: "Cucumber (with peel)",
+        tomato_name: "Tomato",
+        pepper_red_name: "Red Bell Pepper",
+        cauliflower_name: "Cauliflower (raw)",
+        zucchini_name: "Zucchini (raw)",
+        asparagus_name: "Asparagus (raw)",
+        green_beans_name: "Green Beans (raw)",
+        eggplant_name: "Eggplant (raw)",
+        mushrooms_name: "Mushrooms (white, raw)",
+        carrot_name: "Carrot (raw)",
+        raspberries_name: "Raspberries",
+        strawberries_name: "Strawberries",
+        blueberries_name: "Blueberries",
+        apple_name: "Apple (with skin)",
+        orange_name: "Orange",
+        pear_name: "Pear",
+        kiwi_name: "Kiwi",
+        peach_name: "Peach",
+        water_name: "Water",
+        herbal_tea_name: "Herbal Tea (unsweetened)",
+        veg_broth_name: "Vegetable Broth (light)",
+        veg_powder_name: "Vegetable Powder (10g serving)",
+        l_drink_name: "L-drink (commercial, 30g serving)",
+    }
+};
+let currentLanguage = 'pl'; // Domyślny język
+// --- KONIEC STRUKTURY TŁUMACZEŃ ---
+
+// --- ZMIANA: ZAKTUALIZOWANA LISTA PRODUKTÓW ---
+const BASE_PRODUCTS = [ // Zmieniono nazwę na BASE_PRODUCTS
+  // Tłuszcze nienasycone
+  {id:'olive_oil', name:'Oliwa z oliwek', cat:'Tłuszcze nienasycone', kcal:884, p:0, f:100, c:0, allowed:true},
+  {id:'almonds', name:'Orzechy migdały', cat:'Tłuszcze nienasycone', kcal:579, p:21.15, f:49.93, c:21.55, allowed:true},
+  {id:'seeds_mixture', name:'Nasiona mieszane', cat:'Tłuszcze nienasycone', kcal:517, p:18.3, f:42.1, c:28.9, allowed:true},
+  {id:'algal_oil', name:'Olej z alg (omega-3)', cat:'Tłuszcze nienasycone', kcal:900, p:0, f:100, c:0, allowed:true},
+  {id:'avocado', name:'Awokado (Hass)', cat:'Tłuszcze nienasycone', kcal:177, p:2.0, f:15.0, c:8.6, allowed:true}, // NOWY
+
+  // Węglowodany złożone (na 100 g; wiele pozycji przyjęte jako ugotowane lub jadalne)
+  {id:'quinoa', name:'Quinoa (ugotowana)', cat:'Węglowodany złożone', kcal:120, p:4.4, f:1.9, c:21.3, allowed:true},
+  {id:'brown_rice', name:'Ryż brązowy (ugotowany)', cat:'Węglowodany złożone', kcal:123, p:2.7, f:1.0, c:25.6, allowed:true},
+  {id:'farro', name:'Farro (ugotowane)', cat:'Węglowodany złożone', kcal:150, p:5.7, f:1.0, c:30.4, allowed:true},
+  {id:'lentils', name:'Soczewica (ugotowana)', cat:'Węglowodany złożone', kcal:116, p:9.0, f:0.4, c:20.0, allowed:true},
+
+  // Warzywa niskoskrobiowe
+  {id:'cabbage_white', name:'Kapusta biała (surowa)', cat:'Warzywa niskoskrobiowe', kcal:29, p:1.28, f:0.1, c:5.8, allowed:true}, // DODANA KAPUSTA BIAŁA
+  {id:'cabbage_napa', name:'Kapusta pekińska (surowa)', cat:'Warzywa niskoskrobiowe', kcal:20, p:1.2, f:0.2, c:3.2, allowed:true}, // DODANA KAPUSTA PEKIŃSKA
+  {id:'spinach', name:'Szpinak (surowy)', cat:'Warzywa niskoskrobiowe', kcal:30, p:2.9, f:0.39, c:3.6, allowed:true}, // Zaktualizowany Kcal
+  {id:'broccoli', name:'Brokuł (surowy)', cat:'Warzywa niskoskrobiowe', kcal:41, p:2.82, f:0.37, c:6.64, allowed:true}, // Zaktualizowany Kcal i makro
+  {id:'kale', name:'Jarmuż (surowy)', cat:'Warzywa niskoskrobiowe', kcal:53, p:2.92, f:0.73, c:8.75, allowed:true}, // NOWY
+  {id:'lettuce_iceberg', name:'Sałata lodowa', cat:'Warzywa niskoskrobiowe', kcal:17, p:0.92, f:0.14, c:2.97, allowed:true}, // NOWY
+  {id:'cucumber', name:'Ogórek (ze skórką)', cat:'Warzywa niskoskrobiowe', kcal:18, p:0.65, f:0.11, c:3.63, allowed:true}, // NOWY
+  {id:'tomato', name:'Pomidor', cat:'Warzywa niskoskrobiowe', kcal:21, p:0.88, f:0.20, c:3.89, allowed:true}, // NOWY
+  {id:'pepper_red', name:'Papryka czerwona', cat:'Warzywa niskoskrobiowe', kcal:31, p:0.99, f:0.30, c:6.03, allowed:true}, // NOWY
+  {id:'cauliflower', name:'Kalafior (surowy)', cat:'Warzywa niskoskrobiowe', kcal:30, p:1.92, f:0.28, c:4.97, allowed:true}, // NOWY
+  {id:'zucchini', name:'Cukinia (surowa)', cat:'Warzywa niskoskrobiowe', kcal:20, p:1.21, f:0.32, c:3.11, allowed:true}, // NOWY
+  {id:'asparagus', name:'Szparagi (surowe)', cat:'Warzywa niskoskrobiowe', kcal:25, p:2.20, f:0.12, c:3.88, allowed:true}, // NOWY
+  {id:'green_beans', name:'Zielona fasolka (surowa)', cat:'Warzywa niskoskrobiowe', kcal:38, p:1.83, f:0.22, c:7.13, allowed:true}, // NOWY
+  {id:'eggplant', name:'Bakłażan (surowy)', cat:'Warzywa niskoskrobiowe', kcal:29, p:1.01, f:0.18, c:5.88, allowed:true}, // NOWY
+  {id:'mushrooms', name:'Pieczarki (surowe)', cat:'Warzywa niskoskrobiowe', kcal:28, p:3.09, f:0.34, c:3.26, allowed:true}, // NOWY
+  {id:'carrot', name:'Marchew (surowa)', cat:'Warzywa niskoskrobiowe', kcal:41, p:0.93, f:0.24, c:9.58, allowed:true}, // DODANA MARCHEWKA
+
+  // Owoce (ostrożnie w FMD)
+  {id:'raspberries', name:'Maliny', cat:'Owoce', kcal:52, p:1.2, f:0.7, c:11.9, allowed:true}, // Kategoria zmieniona na ogólną
+  {id:'strawberries', name:'Truskawki', cat:'Owoce', kcal:36, p:0.67, f:0.30, c:7.68, allowed:true}, // NOWY
+  {id:'blueberries', name:'Jagody / Borówki', cat:'Owoce', kcal:64, p:0.74, f:0.33, c:14.49, allowed:true}, // NOWY
+  {id:'apple', name:'Jabłko (ze skórką)', cat:'Owoce', kcal:58, p:0.26, f:0.17, c:13.80, allowed:true}, // NOWY
+  {id:'orange', name:'Pomarańcza', cat:'Owoce', kcal:52, p:0.94, f:0.12, c:11.80, allowed:true}, // NOWY
+  {id:'pear', name:'Gruszka', cat:'Owoce', kcal:64, p:0.36, f:0.14, c:15.23, allowed:true}, // NOWY
+  {id:'kiwi', name:'Kiwi', cat:'Owoce', kcal:68, p:1.14, f:0.52, c:14.66, allowed:true}, // NOWY
+  {id:'peach', name:'Brzoskwinia', cat:'Owoce', kcal:44, p:0.91, f:0.25, c:9.54, allowed:true}, // NOWY
+
+  // Płyny i suplementy (przyjęte wartości orientacyjne)
+  {id:'water', name:'Woda', cat:'Płyny i suplementy', kcal:0, p:0, f:0, c:0, allowed:true},
+  {id:'herbal_tea', name:'Herbata ziołowa (bez cukru)', cat:'Płyny i suplementy', kcal:1, p:0, f:0, c:0.2, allowed:true},
+  {id:'veg_broth', name:'Bulion roślinny (lekki)', cat:'Płyny i suplementy', kcal:5, p:0.2, f:0.1, c:1.0, allowed:true},
+  {id:'veg_powder', name:'Proszek warzywny (porcja 10g)', cat:'Płyny i suplementy', kcal:25, p:1.5, f:0.2, c:4.0, allowed:true},
+  {id:'l_drink', name:'L-drink (komercyjny, porcja 30g)', cat:'Płyny i suplementy', kcal:20, p:0, f:0, c:5, allowed:true},
+];
+// --- KONIEC ZMIANY ---
+
+let ALL_PRODUCTS = []; // Globalna tablica łącząca bazowe i własne produkty
+
+// --- ZMIANA: Zaktualizowane limity dla Dnia 1 i Dni 2-5 ---
+const LIMITS = {
+  day1: { kcal:1092, protein:28, fat:68, carbs:92 }, // Nowe wartości dla Dnia 1
+  days2to5: { kcal:731, protein:16, fat:35, carbs:88 } // Nowe wartości dla Dni 2-5
+};
+// --- KONIEC ZMIANY ---
+
+// Plan (lista pozycji): {id, productId, grams}
+let plan = [];
+let customProducts = []; // Tablica na własne produkty użytkownika
+
+// --- DOM refs ---
+const productListEl = document.getElementById('productList');
+const planBody = document.getElementById('planBody');
+const kcalTotalEl = document.getElementById('kcalTotal');
+const proteinTotalEl = document.getElementById('proteinTotal');
+const fatTotalEl = document.getElementById('fatTotal');
+const carbTotalEl = document.getElementById('carbTotal');
+const proteinTargetEl = document.getElementById('proteinTarget');
+const fatTargetEl = document.getElementById('fatTarget');
+const carbTargetEl = document.getElementById('carbTarget');
+const kcalTargetEl = document.getElementById('kcalTarget');
+const dayModeEl = document.getElementById('dayMode');
+const barProtein = document.getElementById('barProtein');
+const barFat = document.getElementById('barFat');
+const barCarb = document.getElementById('barCarb');
+const barProteinFill = barProtein.querySelector('.fill');
+const barFatFill = barFat.querySelector('.fill');
+const barCarbFill = barCarb.querySelector('.fill');
+const barProteinText = document.getElementById('barProteinText');
+const barFatText = document.getElementById('barFatText');
+const barCarbText = document.getElementById('barCarbText');
+const alertsEl = document.getElementById('alerts');
+const themeToggle = document.getElementById('themeToggle');
+const suggestions = document.getElementById('suggestions');
+const langToggleBtn = document.getElementById('langToggle'); // NOWY Przycisk języka
+// NOWE Referencje do pól formularza dodawania produktu
+const customProductNameEl = document.getElementById('customProductName');
+const customProductCategoryEl = document.getElementById('customProductCategory');
+const customProductProteinEl = document.getElementById('customProductProtein');
+const customProductFatEl = document.getElementById('customProductFat');
+const customProductCarbsEl = document.getElementById('customProductCarbs');
+const addCustomProductBtnEl = document.getElementById('addCustomProductBtn');
+const customProductMsgEl = document.getElementById('customProductMsg');
+const productSearchInputEl = document.getElementById('productSearchInput'); // NOWA REFERENCJA
+// NOWE REFERENCJE PANELU OSOBOWEGO
+const personalPanel = document.getElementById('personalPanel');
+const personalDataDisplay = document.getElementById('personalDataDisplay');
+const personalDataForm = document.getElementById('personalDataForm');
+const displayName = document.getElementById('displayName');
+const displayStartDate = document.getElementById('displayStartDate');
+const displayStartWeight = document.getElementById('displayStartWeight');
+const displayEndWeight = document.getElementById('displayEndWeight');
+const inputName = document.getElementById('inputName');
+const inputStartDate = document.getElementById('inputStartDate');
+const inputStartWeight = document.getElementById('inputStartWeight');
+const inputEndWeight = document.getElementById('inputEndWeight');
+const editPersonalDataBtn = document.getElementById('editPersonalDataBtn');
+const savePersonalDataBtn = document.getElementById('savePersonalDataBtn');
+const clearPersonalDataBtn = document.getElementById('clearPersonalDataBtn');
+// NOWE REFERENCJE DLA MODALA AI
+const aiModal = document.getElementById('aiModal');
+const aiModalCloseBtn = document.getElementById('aiModalCloseBtn');
+const aiModalLoader = document.getElementById('aiModalLoader');
+const aiModalContent = document.getElementById('aiModalContent');
+const aiAssistBtn = document.getElementById('aiAssistBtn');
+
+
+// --- Helpers ---
+function fmt(n, d=1){ return Number(n.toFixed(d)); }
+function uid(){ return 'i'+Math.random().toString(36).slice(2,9); }
+
+// --- NOWE FUNKCJE TŁUMACZEŃ ---
+function setLanguage(lang) {
+    if (!translations[lang]) {
+        console.error(`Language ${lang} not found!`);
+        return;
+    }
+    currentLanguage = lang;
+    document.documentElement.lang = lang; // Ustaw atrybut lang w <html>
+    try {
+        localStorage.setItem('fmd_language', lang);
+    } catch(e) { console.warn("Could not save language preference."); }
+    
+    // ZMIANA: Pobierz aktualną wartość wyszukiwania przed renderowaniem
+    const currentSearch = productSearchInputEl ? productSearchInputEl.value : '';
+    
+    updateUIElements(lang); // Zaktualizuj statyczne elementy
+    // Zaktualizuj dynamiczne elementy 
+    renderProducts(currentSearch); // Przekaż wartość wyszukiwania
+    renderPlan();
+    updateTotals(); // Potrzebne do odświeżenia tekstów w paskach i limitach
+    populateCategorySelect(); // Odśwież kategorie w dropdownie
+}
+
+function updateUIElements(lang) {
+    const t = translations[lang];
+    if (!t) return;
+
+    document.title = t.pageTitle; // Zaktualizuj tytuł strony
+
+    document.querySelectorAll('[data-translate]').forEach(el => {
+        const key = el.dataset.translate;
+        
+        // Specjalna obsługa dla etykiety "Tryb dnia:" - aktualizuj tylko span wewnątrz label
+        if (key === 'dayModeLabel' && el.tagName === 'SPAN') {
+             el.textContent = t[key]; 
+             return; // Przejdź do następnego elementu
+        }
+
+        // Standardowe sprawdzenie parentElement
+        if (!el.parentElement && !(el.tagName === 'HTML' || el.tagName === 'BODY')) { 
+            console.warn(`Element with key ${key} has no parentElement.`);
+             if (t[key]) el.textContent = t[key];
+            return; 
+        }
+
+        if (t[key]) {
+            // Logika tooltipów
+            if (key === 'tagWhatIsFMD' && el.tagName === 'SPAN') {
+                if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
+                    el.childNodes[0].nodeValue = t[key]; 
+                } else {
+                     el.insertBefore(document.createTextNode(t[key]), el.firstChild);
+                }
+            } else if (key === 'tooltipFMD' && el.tagName === 'SPAN' && el.classList.contains('tt')) {
+                el.textContent = t[key]; 
+            } 
+            // Obsługa <option>
+            else if (el.tagName === 'OPTION') {
+                 el.textContent = t[key];
+            } 
+            // Obsługa <strong> w <p> (Disclaimer)
+            else if (el.tagName === 'STRONG' && el.parentElement?.tagName === 'P') { 
+                 el.textContent = t[key];
+            } 
+            // Pozostałe elementy
+            else {
+                // Bezpieczniejsze ustawianie textContent
+                if (!el.children.length || ['H1', 'STRONG', 'BUTTON', 'LABEL', 'DIV', 'P', 'LI', 'SPAN'].includes(el.tagName)) {
+                   // Jeśli nie ma dzieci lub jest to prosty element blokowy/tekstowy
+                   // (dodano SPAN dla pewności)
+                   el.textContent = t[key];
+                } else if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
+                    // Jeśli ma dzieci, ale pierwszy jest węzłem tekstowym
+                    el.childNodes[0].nodeValue = t[key];
+                } else {
+                     // W ostateczności dodaj tekst na początku
+                     el.insertBefore(document.createTextNode(t[key]), el.firstChild);
+                     console.warn(`Complex element translation for key ${key}, prepended text.`);
+                }
+            }
+        } else {
+            console.warn(`Translation key not found for [${lang}]: ${key}`);
+        }
+    });
+    // Placeholder and title updates 
+     document.querySelectorAll('[data-translate-placeholder]').forEach(el => { 
+         const key = el.dataset.translatePlaceholder;
+         if(t[key]) el.placeholder = t[key];
+     });
+     document.querySelectorAll('[data-translate-title]').forEach(el => { 
+         const key = el.dataset.translateTitle;
+         if(t[key]) el.title = t[key];
+     });
+}
+
+
+function loadLanguagePreference() {
+    let savedLang = 'pl'; // Domyślnie polski
+    try {
+        savedLang = localStorage.getItem('fmd_language') || 'pl';
+    } catch(e) { console.warn("Could not load language preference."); }
+    
+    if (translations[savedLang]) {
+        currentLanguage = savedLang;
+    } else {
+        currentLanguage = 'pl'; // Fallback na polski jeśli zapisany język jest nieprawidłowy
+    }
+}
+
+// --- KONIEC NOWYCH FUNKCJI TŁUMACZEŃ ---
+
+
+// --- NOWE: Funkcje Panelu Osobowego ---
+
+// Helper: Aktualizuje widok wyświetlania danych
+function updatePersonalDisplay(data) {
+    const t = translations[currentLanguage]; // Potrzebne do formatowania
+    if (!data) {
+        displayName.textContent = '--';
+        displayStartDate.textContent = '--';
+        displayStartWeight.textContent = '--';
+        displayEndWeight.textContent = '--';
+        return;
+    }
+    displayName.textContent = data.name || '--';
+    displayStartDate.textContent = data.startDate || '--';
+    // Dodaj "kg" jeśli jest wartość
+    displayStartWeight.textContent = data.startWeight ? `${data.startWeight} kg` : '--';
+    displayEndWeight.textContent = data.endWeight ? `${data.endWeight} kg` : '--';
+}
+
+// Wczytuje dane osobowe z localStorage
+function loadPersonalData() {
+    let data = {};
+    try {
+        const raw = localStorage.getItem('fmd_personal_data_v1');
+        if (raw) {
+            data = JSON.parse(raw);
+        }
+    } catch (e) {
+        console.error("Nie można wczytać danych osobowych:", e);
+    }
+    updatePersonalDisplay(data);
+    return data; // Zwróć dane do użytku w 'edit'
+}
+
+// Przełącza na tryb edycji
+function editPersonalData() {
+    const t = translations[currentLanguage];
+    const data = loadPersonalData(); // Załaduj aktualne dane
+    
+    // Wypełnij formularz
+    inputName.value = data.name || '';
+    inputStartDate.value = data.startDate || '';
+    inputStartWeight.value = data.startWeight || '';
+    inputEndWeight.value = data.endWeight || '';
+
+    // Przełącz widoki
+    personalDataDisplay.style.display = 'none';
+    personalDataForm.style.display = 'block';
+    editPersonalDataBtn.style.display = 'none';
+    savePersonalDataBtn.style.display = 'block';
+    // Zmień tekst przycisku "Wyczyść", aby był mniej niebezpieczny w trybie edycji
+    clearPersonalDataBtn.textContent = t.personalCancelBtn; 
+    clearPersonalDataBtn.dataset.mode = 'cancel'; // Zmień tryb przycisku
+}
+
+// Zapisuje dane z formularza
+function savePersonalData() {
+    const t = translations[currentLanguage];
+    const data = {
+        name: inputName.value.trim(),
+        startDate: inputStartDate.value,
+        startWeight: inputStartWeight.value,
+        endWeight: inputEndWeight.value
+    };
+
+    try {
+        localStorage.setItem('fmd_personal_data_v1', JSON.stringify(data));
+    } catch (e) {
+        console.error("Nie można zapisać danych osobowych:", e);
+    }
+
+    updatePersonalDisplay(data); // Odśwież widok
+
+    // Przełącz widoki
+    personalDataDisplay.style.display = 'block';
+    personalDataForm.style.display = 'none';
+    editPersonalDataBtn.style.display = 'block';
+    savePersonalDataBtn.style.display = 'none';
+    // Przywróć tekst przycisku "Wyczyść"
+    clearPersonalDataBtn.textContent = t.personalClearBtn;
+    clearPersonalDataBtn.dataset.mode = 'clear'; // Przywróć tryb
+}
+
+// Czyści dane lub anuluje edycję
+function clearOrCancelPersonalData() {
+    const t = translations[currentLanguage];
+    const mode = clearPersonalDataBtn.dataset.mode || 'clear';
+
+    if (mode === 'cancel') {
+        // Anuluj edycję
+        personalDataDisplay.style.display = 'block';
+        personalDataForm.style.display = 'none';
+        editPersonalDataBtn.style.display = 'block';
+        savePersonalDataBtn.style.display = 'none';
+        clearPersonalDataBtn.textContent = t.personalClearBtn;
+        clearPersonalDataBtn.dataset.mode = 'clear';
+    } else {
+        // Wyczyść dane (z potwierdzeniem)
+        if (clearPersonalDataBtn.dataset.confirm === 'true') {
+            localStorage.removeItem('fmd_personal_data_v1');
+            updatePersonalDisplay(null); // Resetuj widok do '--'
+            
+            // Upewnij się, że formularz jest schowany (jeśli był otwarty)
+            personalDataDisplay.style.display = 'block';
+            personalDataForm.style.display = 'none';
+            editPersonalDataBtn.style.display = 'block';
+            savePersonalDataBtn.style.display = 'none';
+            
+            clearPersonalDataBtn.textContent = t.personalClearBtn;
+            clearPersonalDataBtn.dataset.mode = 'clear';
+            clearPersonalDataBtn.dataset.confirm = 'false';
+        } else {
+            clearPersonalDataBtn.textContent = t.msgConfirmClear; // Użyj globalnego tłumaczenia "Na pewno?"
+            clearPersonalDataBtn.dataset.confirm = 'true';
+            setTimeout(() => {
+                if (clearPersonalDataBtn.dataset.confirm === 'true') {
+                    clearPersonalDataBtn.textContent = t.personalClearBtn;
+                    clearPersonalDataBtn.dataset.confirm = 'false';
+                }
+            }, 3000);
+        }
+    }
+}
+
+
+// --- NOWE: Funkcje do zarządzania własnymi produktami ---
+function loadCustomProductsFromStorage() {
+    try {
+        const raw = localStorage.getItem('fmd_custom_products_v1');
+        if (raw) {
+            customProducts = JSON.parse(raw);
+        } else {
+            customProducts = []; // Initialize if nothing is stored
+        }
+    } catch (e) {
+        console.error("Nie można wczytać własnych produktów:", e);
+        customProducts = []; // Reset on error
+    }
+    // Po wczytaniu, połącz listy
+    ALL_PRODUCTS = [...BASE_PRODUCTS, ...customProducts];
+}
+
+function saveCustomProductsToStorage() {
+    try {
+        localStorage.setItem('fmd_custom_products_v1', JSON.stringify(customProducts));
+    } catch (e) {
+        console.error("Nie można zapisać własnych produktów:", e);
+    }
+}
+
+function addCustomProduct() {
+    const t = translations[currentLanguage]; // Pobierz aktualne tłumaczenia
+    const name = customProductNameEl.value.trim();
+    // Odczytaj polską nazwę kategorii zapisaną jako wartość
+    const categoryNamePl = customProductCategoryEl.value; 
+    const p = parseFloat(customProductProteinEl.value);
+    const f = parseFloat(customProductFatEl.value);
+    const c = parseFloat(customProductCarbsEl.value);
+
+    // Walidacja z użyciem tłumaczeń
+    if (!name) {
+        customProductMsgEl.textContent = t.errorProductNameEmpty;
+        return;
+    }
+    if (isNaN(p) || p < 0 || isNaN(f) || f < 0 || isNaN(c) || c < 0) {
+        customProductMsgEl.textContent = t.errorProductMacrosInvalid;
+        return;
+    }
+    if (!categoryNamePl) { // Sprawdź czy wybrano kategorię (czy wartość nie jest pusta)
+        customProductMsgEl.textContent = t.errorProductCategoryMissing;
+        return;
+    }
+   
+    // Oblicz kalorie
+    const kcal = p * 4 + f * 9 + c * 4;
+    // Wygeneruj unikalne ID (zawsze zaczynające się od 'custom_')
+    const id = 'custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+    const newProduct = {
+        id: id,
+        name: name, // Nazwa podana przez użytkownika - nie tłumaczymy jej
+        cat: categoryNamePl, // Przechowujemy polską nazwę kategorii
+        kcal: Math.round(kcal * 10) / 10, // Zaokrąglij kcal
+        p: p,
+        f: f,
+        c: c,
+        allowed: true // Zakładamy, że własne produkty są dozwolone
+    };
+
+    customProducts.push(newProduct);
+    saveCustomProductsToStorage();
+    loadCustomProductsFromStorage(); // Odśwież połączoną listę ALL_PRODUCTS
+    renderProducts(productSearchInputEl.value); // Przerenderuj listę produktów z uwzględnieniem wyszukiwania
+
+    // Wyczyść formularz i pokaż komunikat (użyj tłumaczenia)
+    customProductNameEl.value = '';
+    customProductCategoryEl.value = ''; // Resetuj select
+    customProductProteinEl.value = '';
+    customProductFatEl.value = '';
+    customProductCarbsEl.value = '';
+    customProductMsgEl.textContent = t.msgProductAdded.replace('{name}', name);
+    setTimeout(() => { customProductMsgEl.textContent = ''; }, 3000); // Wyczyść komunikat po 3 sek.
+}
+
+// NOWA FUNKCJA: Usuwanie własnego produktu
+function deleteCustomProduct(productId) {
+    const t = translations[currentLanguage];
+    const productToDelete = customProducts.find(p => p.id === productId);
+    if (!productToDelete) return; // Nie znaleziono produktu
+
+    // Zamiast confirm() użyjemy prostej weryfikacji przez ponowne kliknięcie, jak przy "Wyczyść plan"
+    const deleteBtn = document.querySelector(`.delete-custom-btn[data-delete-id="${productId}"]`);
+    if (!deleteBtn) return;
+
+    if (deleteBtn.dataset.confirm === 'true') {
+        // Usuń produkt z listy customProducts
+        customProducts = customProducts.filter(p => p.id !== productId);
+        saveCustomProductsToStorage();
+        loadCustomProductsFromStorage(); // Odśwież ALL_PRODUCTS
+
+        // Sprawdź, czy produkt był w planie i usuń go stamtąd
+        const wasInPlan = plan.some(item => item.productId === productId);
+        if (wasInPlan) {
+            plan = plan.filter(item => item.productId !== productId);
+            savePlanToStorage();
+            renderPlan(); // Przerenderuj tabelę planu
+            updateTotals(); // Zaktualizuj sumy
+        }
+
+        renderProducts(productSearchInputEl.value); // Przerenderuj listę produktów z uwzględnieniem wyszukiwania
+        customProductMsgEl.textContent = t.msgProductDeleted.replace('{name}', productToDelete.name);
+        setTimeout(() => { customProductMsgEl.textContent = ''; }, 3000);
+
+    } else {
+        deleteBtn.textContent = t.msgConfirmClear.split('?')[0] + '?'; // Użyj przetłumaczonego "Na pewno?"
+        deleteBtn.dataset.confirm = 'true';
+        deleteBtn.style.color = 'orange'; // Zmień kolor dla wizualnego potwierdzenia
+        setTimeout(() => {
+            // Sprawdź czy przycisk nadal istnieje (mógł zostać usunięty przez renderProducts)
+            const currentBtn = document.querySelector(`.delete-custom-btn[data-delete-id="${productId}"]`);
+            if (currentBtn && currentBtn.dataset.confirm === 'true') {
+                currentBtn.textContent = t.btnDelete; // Przywróć przetłumaczoną etykietę "Usuń"
+                currentBtn.style.color = 'var(--danger)'; // Przywróć kolor
+                currentBtn.dataset.confirm = 'false';
+            }
+        }, 3000); // Resetuj po 3 sekundach
+    }
+}
+
+
+// Funkcja do wypełniania selecta kategorii
+function populateCategorySelect() {
+    const t = translations[currentLanguage]; // Pobierz aktualny język
+     // Użyj przetłumaczonych nazw kategorii
+    const categories = [...new Set(BASE_PRODUCTS.map(p => p.cat))]
+        .map(catPl => {
+             // Znajdź klucz dla polskiej nazwy
+             const key = Object.keys(translations.pl).find(k => k.startsWith('cat_') && translations.pl[k] === catPl);
+             // Zwróć obiekt z polską nazwą (dla wartości) i przetłumaczoną (dla tekstu)
+             return { value: catPl, text: t[key] || catPl }; 
+         })
+        .sort((a, b) => a.text.localeCompare(b.text, currentLanguage)); // Sortuj według przetłumaczonej nazwy
+
+    customProductCategoryEl.innerHTML = `<option value="">— ${t.asideSuggestionsOptionDefault.split(' ')[1]} —</option>`; // Użyj tłumaczenia dla "wybierz"
+
+    categories.forEach(catInfo => {
+        const option = document.createElement('option');
+        option.value = catInfo.value; // Użyj polskiej nazwy jako wartości
+        option.textContent = catInfo.text; // Wyświetl przetłumaczoną nazwę
+        customProductCategoryEl.appendChild(option);
+    });
+}
+// --- KONIEC NOWYCH FUNKCJI ---
+
+
+// --- ZMIANA: Zmodyfikowana funkcja renderowania produktów z wyszukiwaniem ---
+// Render product list
+function renderProducts(searchTerm = ''){
+  productListEl.innerHTML = '';
+  const t = translations[currentLanguage]; // Pobierz tłumaczenia
+  const normalizedSearch = searchTerm.toLowerCase().trim(); // Normalizuj wyszukiwanie
+
+  // 1. Filtruj ALL_PRODUCTS na podstawie wyszukiwania
+  let filteredProducts;
+  if (normalizedSearch.length > 0) {
+    filteredProducts = ALL_PRODUCTS.filter(p => {
+      const baseName = p.name.toLowerCase();
+      // Sprawdź też przetłumaczoną nazwę
+      const translatedName = (t[p.id + '_name'] || '').toLowerCase(); 
+      return baseName.includes(normalizedSearch) || translatedName.includes(normalizedSearch);
+    });
+  } else {
+    filteredProducts = ALL_PRODUCTS; // Pokaż wszystko, jeśli wyszukiwanie jest puste
+  }
+
+  // 2. Grupuj filtrowane produkty
+  const cats = {};
+  filteredProducts.forEach(p=>{ 
+      const categoryKey = p.cat; 
+      if(!cats[categoryKey]) cats[categoryKey]=[]; 
+      cats[categoryKey].push(p);
+  }); 
+  
+  // 3. Stwórz listę kategorii do sortowania (na podstawie tego, co zostało w `cats`)
+  const categoriesToRender = Object.keys(cats).map(catPl => {
+       const key = Object.keys(translations.pl).find(k => k.startsWith('cat_') && translations.pl[k] === catPl);
+       return { key: key, namePl: catPl, nameTranslated: (key && t[key] ? t[key] : catPl) };
+   }).sort((a, b) => a.nameTranslated.localeCompare(b.nameTranslated, currentLanguage));
+
+  // 4. Ustal, czy kategorie mają być zwinięte
+  // Będą zwinięte tylko wtedy, gdy pole wyszukiwania jest puste
+  const isCollapsed = normalizedSearch.length === 0;
+
+  for(const catInfo of categoriesToRender){
+    // Sprawdzenie, czy kategoria ma produkty (technicznie już przefiltrowane, ale dla pewności)
+    if (cats[catInfo.namePl] && cats[catInfo.namePl].length > 0) {
+        const header = document.createElement('div');
+        // Użyj `isCollapsed` do ustawienia klasy
+        header.className = 'category-header' + (isCollapsed ? ' collapsed' : ''); 
+        header.textContent = catInfo.nameTranslated;
+        header.dataset.category = catInfo.namePl;
+        productListEl.appendChild(header);
+
+        const itemsContainer = document.createElement('div');
+        // Użyj `isCollapsed` do ustawienia klasy
+        itemsContainer.className = 'category-items' + (isCollapsed ? ' collapsed' : ''); 
+        itemsContainer.dataset.categoryContent = catInfo.namePl;
+
+        // Sortuj i renderuj produkty W RAMACH kategorii (te, które przeszły filtr)
+        cats[catInfo.namePl].sort((a,b) => {
+             const nameA = t[a.id + '_name'] || a.name;
+             const nameB = t[b.id + '_name'] || b.name;
+             return nameA.localeCompare(nameB, currentLanguage);
+         }).forEach(p=>{ 
+          const row = document.createElement('div');
+          row.className = 'product-item' + (p.allowed? '':' blocked');
+          
+          const left = document.createElement('div'); 
+          left.className = 'left';
+          
+          const nameLine = document.createElement('div');
+          nameLine.className = 'name-line';
+          
+          const name = document.createElement('div'); 
+          name.textContent = t[p.id + '_name'] || p.name; 
+          name.style.fontWeight='600';
+          nameLine.appendChild(name);
+
+          if (p.id.startsWith('custom_')) {
+              const deleteBtn = document.createElement('button');
+              deleteBtn.textContent = t.btnDelete;
+              deleteBtn.className = 'delete-custom-btn';
+              deleteBtn.dataset.deleteId = p.id;
+              deleteBtn.onclick = (e) => {
+                  e.stopPropagation();
+                  deleteCustomProduct(p.id);
+              };
+              nameLine.appendChild(deleteBtn);
+          }
+          
+          const small = document.createElement('div'); 
+          small.className='small muted'; 
+          small.textContent = `kcal/100g: ${Math.round(p.kcal)}, B:${p.p}g T:${p.f}g W:${p.c}g`;
+          
+          left.appendChild(nameLine);
+          left.appendChild(small);
+          
+          const right = document.createElement('div');
+          if(p.allowed){
+            const btn = document.createElement('button');
+            btn.className='select';
+            btn.textContent = t.btnAdd;
+            btn.onclick = ()=> addToPlan(p.id, 10);
+            right.appendChild(btn);
+          } else {
+            const span = document.createElement('span'); 
+            span.textContent = t.productExcluded;
+            span.style.fontSize='13px';
+            right.appendChild(span);
+          }
+          row.appendChild(left); row.appendChild(right);
+          itemsContainer.appendChild(row);
+        });
+        productListEl.appendChild(itemsContainer);
+    } // Koniec if (cats[catInfo.namePl]...)
+  }
+
+  // Dodaj listenery do nagłówków (nawet jeśli są rozwinięte)
+  productListEl.querySelectorAll('.category-header').forEach(header => {
+    header.addEventListener('click', (e) => {
+      if (e.target.classList.contains('category-header')) {
+          const categoryNamePl = e.target.dataset.category;
+          const itemsDiv = productListEl.querySelector(`.category-items[data-category-content="${categoryNamePl}"]`);
+          if (itemsDiv) {
+              itemsDiv.classList.toggle('collapsed');
+              e.target.classList.toggle('collapsed');
+          }
+      }
+    });
+  });
+}
+// --- KONIEC ZMIANY ---
+
+
+// Add to plan
+function addToPlan(productId, grams){
+  const id = uid();
+  // ZMIANA: Dodawaj na początek listy (unshift zamiast push)
+  plan.unshift({id, productId, grams}); 
+  savePlanToStorage();
+  renderPlan();
+  updateTotals();
+}
+
+// Render plan table
+function renderPlan(){
+  planBody.innerHTML = '';
+  const t = translations[currentLanguage]; // Pobierz tłumaczenia
+
+  // Ustaw nagłówki tabeli dynamicznie
+  const thead = document.querySelector('#planTable thead tr');
+  if (thead) {
+      thead.innerHTML = `
+          <th>${t.planTableHeaderProduct}</th>
+          <th>${t.planTableHeaderGrams}</th>
+          <th>${t.planTableHeaderKcal}</th>
+          <th>${t.planTableHeaderProtein}</th>
+          <th>${t.planTableHeaderFat}</th>
+          <th>${t.planTableHeaderCarbs}</th>
+          <th></th> 
+      `;
+  }
+
+
+  plan.forEach(item=>{
+    // Używaj ALL_PRODUCTS do znalezienia produktu
+    const p = ALL_PRODUCTS.find(x=>x.id===item.productId); 
+    if (!p) { console.error(`Product not found for ID: ${item.productId}`); return; } // Safety check
+    
+    // Pobierz przetłumaczoną nazwę produktu i kategorii
+    const productName = t[p.id + '_name'] || p.name;
+     // Znajdź klucz kategorii na podstawie polskiej nazwy przechowywanej w produkcie
+    const categoryKey = Object.keys(translations.pl).find(k => k.startsWith('cat_') && translations.pl[k] === p.cat);
+    // Pobierz przetłumaczoną nazwę kategorii dla bieżącego języka
+    const categoryName = (categoryKey && t[categoryKey]) ? t[categoryKey] : p.cat;
+
+
+    const kcal = item.grams * p.kcal / 100;
+    const prot = item.grams * p.p / 100;
+    const fat = item.grams * p.f / 100;
+    const carb = item.grams * p.c / 100;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="min-width:140px"><strong>${productName}</strong><div class="muted small">${categoryName}</div></td>
+      <td><input class="tiny" type="number" step="1" min="0" value="${fmt(item.grams,0)}" data-id="${item.id}" /></td>
+      <td>${fmt(kcal,1)}</td>
+      <td>${fmt(prot,2)}</td>
+      <td>${fmt(fat,2)}</td>
+      <td>${fmt(carb,2)}</td>
+      <td style="text-align:right"><button class="select" data-del="${item.id}">${t.btnDelete}</button></td>
+    `;
+    planBody.appendChild(tr);
+  });
+  // attach events
+  planBody.querySelectorAll('input[type="number"]').forEach(inp=>{
+    // ZMIANA: Użyj 'input' zamiast 'change' dla aktualizacji na żywo
+    inp.addEventListener('input', (e)=>{
+      const id = e.target.dataset.id;
+      let val = parseFloat(e.target.value); // Użyj parseFloat dla ułamków
+
+      if (e.target.value === '') {
+          val = 0; // Puste pole jest traktowane jak 0
+      } else if (isNaN(val) || val < 0) {
+          return; // Nie rób nic, jeśli wartość jest niepoprawna (np. "10a" lub "-")
+      }
+      
+      const idx = plan.findIndex(x=>x.id===id);
+      if(idx>=0){ 
+        // Używaj ALL_PRODUCTS do znalezienia produktu
+        const product = ALL_PRODUCTS.find(x=>x.id===plan[idx].productId); // Find product once
+        if(!product) return; // Safety check
+
+        plan[idx].grams = val; 
+        savePlanToStorage(); 
+        updateTotals(); // Aktualizuj sumy globalne i paski
+
+        // ZMIANA: Ręcznie aktualizuj komórki w tym wierszu, aby nie przerywać pisania
+        const kcal = val * product.kcal / 100;
+        const prot = val * product.p / 100;
+        const fat = val * product.f / 100;
+        const carb = val * product.c / 100;
+        
+        const tr = e.target.closest('tr');
+        if(tr) {
+            tr.cells[2].textContent = fmt(kcal,1);
+            tr.cells[3].textContent = fmt(prot,2);
+            tr.cells[4].textContent = fmt(fat,2);
+            tr.cells[5].textContent = fmt(carb,2);
+        }
+      }
+    });
+  });
+  planBody.querySelectorAll('button[data-del]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const id = e.target.dataset.del;
+      plan = plan.filter(x=>x.id !== id);
+      savePlanToStorage();
+      renderPlan();
+      updateTotals();
+    });
+  });
+}
+
+// Update totals and bars
+function updateTotals(){
+  const mode = dayModeEl.value;
+  const limits = LIMITS[mode]; // Dynamiczne pobranie limitów
+  const t = translations[currentLanguage]; // Pobierz tłumaczenia
+
+  let kcalSum=0, pSum=0, fSum=0, cSum=0;
+  plan.forEach(item=>{
+    // Używaj ALL_PRODUCTS do znalezienia produktu
+    const pr = ALL_PRODUCTS.find(x=>x.id===item.productId); 
+    if (!pr) return; // Safety check
+    kcalSum += item.grams * pr.kcal / 100;
+    pSum += item.grams * pr.p / 100;
+    fSum += item.grams * pr.f / 100;
+    cSum += item.grams * pr.c / 100;
+  });
+
+  // Round carefully digit-by-digit
+  kcalSum = Math.round(kcalSum*10)/10;
+  pSum = Math.round(pSum*100)/100;
+  fSum = Math.round(fSum*100)/100;
+  cSum = Math.round(cSum*100)/100;
+
+  kcalTotalEl.textContent = fmt(kcalSum,1);
+  proteinTotalEl.textContent = `${fmt(pSum,2)} g`;
+  fatTotalEl.textContent = `${fmt(fSum,2)} g`;
+  carbTotalEl.textContent = `${fmt(cSum,2)} g`;
+
+  // Aktualizuj wyświetlane limity na podstawie wybranego trybu
+  proteinTargetEl.textContent = `/ ${limits.protein} g`;
+  fatTargetEl.textContent = `/ ${limits.fat} g`;
+  carbTargetEl.textContent = `/ ${limits.carbs} g`;
+  kcalTargetEl.textContent = `/ ${limits.kcal} kcal`;
+
+  // bars: percent of gram limit
+  const pPerc = limits.protein > 0 ? Math.min(100, (pSum / limits.protein) * 100) : 0;
+  const fPerc = limits.fat > 0 ? Math.min(100, (fSum / limits.fat) * 100) : 0;
+  const cPerc = limits.carbs > 0 ? Math.min(100, (cSum / limits.carbs) * 100) : 0;
+  barProteinFill.style.width = pPerc + '%';
+  barFatFill.style.width = fPerc + '%';
+  barCarbFill.style.width = cPerc + '%';
+  // Użyj tłumaczeń w tekstach pasków
+  barProteinText.textContent = `${fmt(pSum,2)} g ${t.progressLabelFrom} ${limits.protein} g (${fmt(pPerc,0)}%)`;
+  barFatText.textContent = `${fmt(fSum,2)} g ${t.progressLabelFrom} ${limits.fat} g (${fmt(fPerc,0)}%)`;
+  barCarbText.textContent = `${fmt(cSum,2)} g ${t.progressLabelFrom} ${limits.carbs} g (${fmt(cPerc,0)}%)`;
+
+  // warnings - użyj tłumaczeń
+  alertsEl.innerHTML = '';
+  if(pSum > limits.protein){
+    const w = document.createElement('div'); w.className='warning'; 
+    w.innerHTML = t.warnProteinOverLimit.replace('{limit}', limits.protein);
+    alertsEl.appendChild(w);
+    barProtein.classList.add('warn');
+  } else {
+    barProtein.classList.remove('warn');
+  }
+  if(kcalSum > limits.kcal){
+    const w2 = document.createElement('div'); w2.className='warning'; 
+    w2.innerHTML = t.warnKcalOverLimit.replace('{kcal}', fmt(kcalSum,1)).replace('{limit}', limits.kcal);
+    alertsEl.appendChild(w2);
+  }
+  // subtle suggestions - użyj tłumaczenia
+  if(limits.protein > 0 && pSum > limits.protein * 0.8 && pSum <= limits.protein){
+    const hint = document.createElement('div'); hint.className='muted small'; 
+    hint.textContent = t.hintProteinNearLimit;
+    alertsEl.appendChild(hint);
+  }
+}
+
+// Save / load plan
+function savePlanToStorage(){
+  try{
+    localStorage.setItem('fmd_plan_v1', JSON.stringify({plan, mode: dayModeEl.value}));
+  }catch(e){ console.error("Nie można zapisać planu:", e); }
+}
+function loadPlanFromStorage(){
+  try{
+    const raw = localStorage.getItem('fmd_plan_v1');
+    if(raw){
+      const data = JSON.parse(raw);
+      if(data && data.plan) plan = data.plan;
+      if(data && data.mode) dayModeEl.value = data.mode;
+    }
+  }catch(e){ console.error("Nie można wczytać planu:", e); }
+}
+
+// Clear plan
+function clearAll(){
+  const t = translations[currentLanguage]; // Pobierz tłumaczenia
+  if (plan.length === 0) return; // Nie rób nic, jeśli plan jest pusty
+  
+  const clearBtn = document.getElementById('clearBtn');
+  if (clearBtn.dataset.confirm === 'true') {
+      plan = [];
+      savePlanToStorage();
+      renderPlan();
+      updateTotals();
+      clearBtn.textContent = t.clearButton; // Użyj tłumaczenia
+      clearBtn.dataset.confirm = 'false';
+      alertsEl.innerHTML = ''; // Wyczyść też alerty
+  } else {
+      clearBtn.textContent = t.msgConfirmClear; // Użyj tłumaczenia
+      clearBtn.dataset.confirm = 'true';
+      setTimeout(() => {
+          if (clearBtn.dataset.confirm === 'true') {
+              clearBtn.textContent = t.clearButton; // Użyj tłumaczenia
+              clearBtn.dataset.confirm = 'false';
+          }
+      }, 3000); // Resetuj po 3 sekundach
+  }
+}
+
+// Export (print to PDF)
+function exportPDF(){
+  // Minimal approach: otworzyć okno drukowania
+  window.print();
+}
+
+// Suggestions handler
+function applySuggestion(val){
+  if(!val) return;
+  // Używaj ALL_PRODUCTS do znalezienia ID
+  const oliveOil = ALL_PRODUCTS.find(p => p.id === 'olive_oil');
+  const broccoli = ALL_PRODUCTS.find(p => p.id === 'broccoli');
+  const almonds = ALL_PRODUCTS.find(p => p.id === 'almonds');
+  
+  if(val==='safeFat' && oliveOil) addToPlan(oliveOil.id, 10);
+  if(val==='lowProteinVeg' && broccoli) addToPlan(broccoli.id, 100);
+  if(val==='smallSnack' && almonds) addToPlan(almonds.id, 15);
+  
+  suggestions.value = ''; // Resetuj select
+}
+
+// Theme toggle
+function toggleTheme(){
+  const body = document.body;
+  const current = body.getAttribute('data-theme');
+  const next = current === 'dark' ? '' : 'dark';
+  body.setAttribute('data-theme', next);
+  try { localStorage.setItem('fmd_theme', next); } catch(e) {}
+}
+
+// --- NOWE FUNKCJE ASYSTENTA AI ---
+
+// Prosty parser Markdown -> HTML
+function parseMarkdown(text) {
+    let html = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Pogrubienie
+        .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Kursywa
+
+    // Konwersja list (obsługuje gwiazdki i myślniki)
+    html = html.replace(/^\s*[\*\-]\s+(.*)$/gm, '<li>$1</li>'); // Elementy listy
+    html = html.replace(/(\n?<ul>)?(<li>.*<\/li>)(\n?<\/ul>)?/gs, '<ul>$2</ul>'); // Otocz listy <ul>
+
+    // Konwersja paragrafów
+    html = html.split('\n\n').map(p => p.trim() ? `<p>${p}</p>` : '').join('');
+    
+    // Czyszczenie po konwersji list w paragrafach
+    html = html.replace(/<p><ul>/g, '<ul>');
+    html = html.replace(/<\/ul><\/p>/g, '</ul>');
+    // Poprawka dla nowych linii
+    html = html.replace(/\n/g, '<br>');
+    html = html.replace(/<br><li>/g, '<li>');
+    html = html.replace(/<\/li><br>/g, '</li>');
+    html = html.replace(/<p><br>/g, '<p>');
+
+    return html;
+}
+
+// Pokazywanie i ukrywanie modala
+function showAIModal(loading = false) {
+    aiModal.style.display = 'flex';
+    if (loading) {
+        aiModalLoader.style.display = 'flex';
+        aiModalContent.innerHTML = '';
+    } else {
+        aiModalLoader.style.display = 'none';
+    }
+}
+
+function hideAIModal() {
+    aiModal.style.display = 'none';
+}
+
+// Główna funkcja wywołująca AI
+async function callAIAssistant() {
+    showAIModal(true);
+    const t = translations[currentLanguage];
+
+    // 1. Zbierz dane do promptu
+    const mode = dayModeEl.value;
+    const limits = LIMITS[mode];
+    const modeText = (mode === 'day1' ? t.day1Option : t.days2to5Option).split('—')[0].trim(); // "Dzień 1" lub "Dni 2-5"
+
+    // Oblicz aktualne sumy
+    let kcalSum=0, pSum=0, fSum=0, cSum=0;
+    const productsInPlan = [];
+    const tProducts = translations[currentLanguage]; // Tłumaczenia nazw produktów
+
+    plan.forEach(item => {
+        const pr = ALL_PRODUCTS.find(x => x.id === item.productId);
+        if (!pr) return;
+        kcalSum += item.grams * pr.kcal / 100;
+        pSum += item.grams * pr.p / 100;
+        fSum += item.grams * pr.f / 100;
+        cSum += item.grams * pr.c / 100;
+        
+        const productName = tProducts[pr.id + '_name'] || pr.name;
+        productsInPlan.push(`${productName} (${item.grams}g)`);
+    });
+
+    // Zaokrąglij sumy
+    pSum = fmt(pSum, 2);
+    fSum = fmt(fSum, 2);
+    cSum = fmt(cSum, 2);
+
+    // Oblicz braki
+    const pRem = fmt(Math.max(0, limits.protein - pSum), 2);
+    const fRem = fmt(Math.max(0, limits.fat - fSum), 2);
+    const cRem = fmt(Math.max(0, limits.carbs - cSum), 2);
+    
+    const productsInPlanText = productsInPlan.length > 0 ? productsInPlan.join(', ') : 'Brak (plan jest pusty)';
+    const allProductsText = ALL_PRODUCTS
+      .filter(p => p.allowed)
+      .map(p => {
+          const name = tProducts[p.id + '_name'] || p.name;
+          return `${name} (B:${p.p}, T:${p.f}, W:${p.c} na 100g)`;
+      })
+      .join('\n');
+
+
+    // 2. Zbuduj prompty
+    const systemPrompt = `Jesteś ekspertem dietetykiem specjalizującym się w protokole FMD (Fasting Mimicking Diet). Twoim zadaniem jest pomoc użytkownikowi w dokończeniu planu żywieniowego. Bądź przyjazny, konkretny i zwięzły.
+ZASADY:
+1.  Absolutnym priorytetem jest nieprzekroczenie limitu białka.
+2.  Zaproponuj konkretne produkty (z listy dostępnych) i ich gramaturę, aby jak najlepiej zbliżyć się do celu tłuszczu i węglowodanów.
+3.  Zawsze faworyzuj produkty o zerowej lub śladowej ilości białka (np. oliwa z oliwek), jeśli limit białka jest bliski przekroczenia.
+4.  Odpowiedz w języku polskim, w formacie Markdown. Używaj list wypunktowanych (z gwiazdką \`*\`) dla sugestii.
+5.  Twoja odpowiedź powinna być krótka, zawierać 1-2 zdania wstępu i listę sugestii.
+6.  Bazuj *tylko* na liście dostępnych produktów.`;
+
+    const userQuery = `Pomóż mi dokończyć plan na ${modeText}.
+Cel: Białko max ${limits.protein}g, Tłuszcz max ${limits.fat}g, Węglowodany max ${limits.carbs}g.
+Obecna suma: Białko ${pSum}g, Tłuszcz ${fSum}g, Węglowodany ${cSum}g.
+Brakuje (do celu): Białko ${pRem}g, Tłuszcz ${fRem}g, Węglowodany ${cRem}g.
+Produkty już w planie: ${productsInPlanText}.
+
+Oto *wszystkie* dostępne produkty (nazwa, makro na 100g):
+---
+${allProductsText}
+---
+
+Zaproponuj co dodać (z powyższej listy), aby najlepiej trafić w cel, nie przekraczając absolutnie limitu białka (${limits.protein}g).`;
+
+    // 3. Wywołanie API (TERAZ DO NASZEGO SERWERA POŚREDNIKA)
+    // ZMIANA: Używamy lokalnego adresu naszej funkcji Vercel
+    const apiUrl = '/api/ai';
+
+    const payload = {
+      // Wysyłamy tylko prompty, klucz API jest bezpieczny na serwerze
+      userQuery: userQuery,
+      systemPrompt: systemPrompt
+    };
+
+    const options = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    };
+
+    try {
+        // Używamy zwykłego fetch
+        const response = await fetch(apiUrl, options);
+        if (!response.ok) {
+            // Jeśli nasz serwer (api/ai.js) zwrócił błąd
+            const errorData = await response.json();
+            console.error("Błąd z serwera /api/ai:", errorData);
+            throw new Error(errorData.error || "Błąd serwera");
+        }
+
+        const result = await response.json(); // Odbieramy odpowiedź z naszego serwera { text: "..." }
+
+        if (result && result.text) {
+            const aiText = result.text;
+            aiModalContent.innerHTML = parseMarkdown(aiText);
+            showAIModal(false); // Pokaż zawartość, ukryj loader
+        } else {
+            throw new Error("Nieprawidłowa odpowiedź z serwera /api/ai");
+        }
+    } catch (error) {
+        console.error("Błąd Asystenta AI:", error);
+        aiModalContent.innerHTML = `<p style="color: var(--danger);">${t.aiModalError}</p>`;
+        showAIModal(false);
+    }
+}
+// --- KONIEC FUNKCJI ASYSTENTA AI ---
+
+
+// Init
+function init(){
+  loadLanguagePreference(); // Wczytaj preferowany język
+  loadCustomProductsFromStorage(); // Wczytaj własne produkty
+  // Listener dla przycisku języka musi być dodany przed setLanguage
+  langToggleBtn.addEventListener('click', () => {
+        const nextLang = currentLanguage === 'pl' ? 'en' : 'pl';
+        setLanguage(nextLang);
+  });
+
+  // Teraz wywołaj renderowanie i ustawienie języka
+  renderProducts(); // Renderuje produkty (teraz z obsługą klikania kategorii)
+  populateCategorySelect(); // Wypełnij dropdown kategorii
+  loadPlanFromStorage();
+  renderPlan();
+  // updateTotals(); // updateTotals jest wywoływane w setLanguage
+  setLanguage(currentLanguage); // Zastosuj wczytany lub domyślny język
+  
+  // Reszta listenerów
+  dayModeEl.addEventListener('change', ()=>{ updateTotals(); renderPlan(); savePlanToStorage(); });
+  
+  document.getElementById('saveBtn').addEventListener('click', ()=>{ 
+      savePlanToStorage(); 
+      const t = translations[currentLanguage];
+      alertsEl.innerHTML = `<div class="muted small" style="text-align:right; margin-top:8px;">${t.msgPlanSaved}</div>`;
+      setTimeout(() => {
+          const alertMsg = alertsEl.querySelector('.small.muted');
+          if (alertMsg) {
+             alertMsg.remove();
+          }
+      }, 2500);
+  });
+  
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+  document.getElementById('exportBtn').addEventListener('click', exportPDF);
+  themeToggle.addEventListener('click', toggleTheme);
+  suggestions.addEventListener('change', ()=> applySuggestion(suggestions.value));
+  addCustomProductBtnEl.addEventListener('click', addCustomProduct); 
+  
+  // NOWY LISTENER DLA WYSZUKIWANIA
+  productSearchInputEl.addEventListener('input', (e) => {
+    renderProducts(e.target.value);
+  });
+
+  // NOWE LISTENERY PANELU OSOBOWEGO
+  editPersonalDataBtn.addEventListener('click', editPersonalData);
+  savePersonalDataBtn.addEventListener('click', savePersonalData);
+  clearPersonalDataBtn.addEventListener('click', clearOrCancelPersonalData);
+
+  // NOWE LISTENERY MODALA AI
+  aiAssistBtn.addEventListener('click', callAIAssistant);
+  aiModalCloseBtn.addEventListener('click', hideAIModal);
+  aiModal.addEventListener('click', (e) => {
+    // Zamknij modal, jeśli kliknięto tło (overlay)
+    if (e.target === aiModal) {
+      hideAIModal();
+    }
+  });
+
+  // Wczytaj preferencje motywu
+  let savedTheme = '';
+  try { savedTheme = localStorage.getItem('fmd_theme'); } catch(e) {}
+  
+  if (savedTheme) {
+      document.body.setAttribute('data-theme', savedTheme);
+  } else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+      document.body.setAttribute('data-theme','dark');
+  }
+
+  // Na końcu init, po setLanguage
+  loadPersonalData();
+}
+
+// initial call
+init();
+
+</script>
+</body>
+</html>
