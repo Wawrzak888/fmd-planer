@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- ZMIANA: Dodano atrybut lang dynamicznie -->
-<html lang="pl"> 
+<html lang="pl">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -20,433 +20,206 @@
   *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
   html,body{height:100%;}
   body{margin:0;background:linear-gradient(180deg,var(--bg),#e9eef3);padding:20px;color:var(--muted);transition:background .2s,color .2s;}
-  .app{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:start;}
-  @media (max-width:1000px){.app{grid-template-columns:1fr;}}
+
+  /* --- POCZĄTEK POPRAWEK RWD --- */
+  .app{
+    max-width:1100px;
+    margin:0 auto;
+    display:grid;
+    /* Domyślnie dwie kolumny na większych ekranach */
+    grid-template-columns:1fr 420px;
+    gap:20px;
+    align-items:start;
+  }
+  /* Na ekranach <= 1000px przejdź na układ jednokolumnowy */
+  @media (max-width:1000px){
+    .app{grid-template-columns:1fr;}
+    body { padding: 10px; } /* Zmniejsz padding body na mniejszych ekranach */
+  }
+  /* --- KONIEC POPRAWEK RWD --- */
+
   .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,0.08);border:1px solid rgba(0,0,0,0.03);}
-  header{display:flex;gap:12px;align-items:center;margin-bottom:12px;}
-  /* ZMIANA: Dostosowano line-height dla lepszego wyrównania pionowego */
-  h1{margin:0;font-size:20px;color:var(--accent); line-height: 1.2;} 
-  /* KONIEC ZMIANY */
-  .controls{margin-left:auto;display:flex;gap:8px;align-items:center;}
-  /* Poprawka dla select w label */
-  .controls label { display: flex; align-items: center; gap: 5px; } 
+  header{display:flex; flex-wrap: wrap; /* Pozwól elementom się zawijać */ gap:12px;align-items:center;margin-bottom:12px;}
+  h1{margin:0;font-size:20px;color:var(--accent); line-height: 1.2;}
+  .controls{
+    margin-left:auto;
+    display:flex;
+    flex-wrap: wrap; /* Pozwól przyciskom się zawijać */
+    gap:8px;
+    align-items:center;
+  }
+  /* Na bardzo małych ekranach przenieś kontrolki pod tytuł */
+  @media (max-width: 600px) {
+    header { flex-direction: column; align-items: flex-start;}
+    .controls { margin-left: 0; width: 100%; justify-content: flex-start; }
+  }
+
+  .controls label { display: flex; align-items: center; gap: 5px; }
   .select,button,input[type="number"], input[type="text"]{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);background:transparent;color:inherit; width: auto; /* Domyślnie auto */}
-  input[type="text"], .add-product-form select { width: 100%; } /* Nadal pełna szerokość dla tych */
-  button { width: auto; } /* Override button width */
-  input[type="number"] { width: 72px; } /* Keep tiny inputs small */
+  input[type="text"], .add-product-form select { width: 100%; }
+  button { width: auto; }
+  input[type="number"] { width: 72px; }
   .small{font-size:13px;color:var(--muted);}
-  .summary{display:flex;gap:12px;align-items:center;}
-  .stat{background:var(--glass);padding:10px;border-radius:10px;min-width:120px;text-align:center;}
+
+  /* --- POCZĄTEK POPRAWEK RWD DLA SUMMARY --- */
+  .summary{
+    display:flex;
+    flex-wrap: wrap; /* Pozwól statystykom się zawijać */
+    gap:12px;
+    align-items:stretch; /* Wyrównaj wysokość elementów */
+    justify-content: space-around; /* Rozłóż równomiernie */
+  }
+  .stat{
+    background:var(--glass);
+    padding:10px;
+    border-radius:10px;
+    /* Usunięto min-width, flex-grow pozwoli im zająć miejsce */
+    text-align:center;
+    flex-grow: 1; /* Pozwól elementom rosnąć */
+    flex-basis: 120px; /* Bazowa szerokość przed zawinięciem */
+  }
+   /* Na bardzo małych ekranach (np. < 400px) statystyki mogą zajmować więcej miejsca */
+   @media (max-width: 480px) {
+    .stat { flex-basis: calc(50% - 6px); } /* Dwie kolumny */
+   }
+   @media (max-width: 320px) {
+    .stat { flex-basis: 100%; } /* Jedna kolumna */
+   }
+  /* --- KONIEC POPRAWEK RWD DLA SUMMARY --- */
+
   .stat strong{display:block;font-size:18px;color:var(--accent);}
-  /* NOWE ETYKIETY W KARTACH STATYSTYK */
-  .stat .stat-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    color: var(--muted);
-    opacity: 0.7;
-    margin-top: 5px; /* Odstęp dla etykiety "Limit" */
-    line-height: 1;
-  }
-  .stat .stat-label.total {
-    margin-top: 2px; /* Mniejszy odstęp dla "Suma" */
-    margin-bottom: -2px; /* Zbliżenie do liczby */
-  }
-  .stat div[id$="Target"] {
-      margin-top: 0px; /* Zerowanie marginesu dla liczby limitu */
-  }
+  .stat .stat-label {font-size: 10px; text-transform: uppercase; color: var(--muted); opacity: 0.7; margin-top: 5px; line-height: 1;}
+  .stat .stat-label.total {margin-top: 2px; margin-bottom: -2px;}
+  .stat div[id$="Target"] {margin-top: 0px;}
+
   .bars{display:grid;gap:10px;margin-top:12px;}
   .bar{background:linear-gradient(90deg,#e6eef0,transparent);padding:10px;border-radius:8px;}
-  /* ZMIANA: Poprawka tła pasków w trybie ciemnym dla lepszej widoczności tekstu */
-  [data-theme="dark"] .bar {
-    background:linear-gradient(90deg,rgba(255,255,255,0.04),transparent);
-  }
-  /* KONIEC ZMIANY */
+  [data-theme="dark"] .bar {background:linear-gradient(90deg,rgba(255,255,255,0.04),transparent);}
   .bar .label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:var(--muted);}
   .bar .track{height:14px;background:#e6eef3;border-radius:8px;overflow:hidden;}
-  /* ZMIANA: Poprawka tła paska postępu w trybie ciemnym */
-  [data-theme="dark"] .bar .track {
-    background: rgba(255,255,255,0.06);
-  }
-  /* KONIEC ZMIANY */
+  [data-theme="dark"] .bar .track {background: rgba(255,255,255,0.06);}
   .bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .2s;}
   .bar.warn .fill{background:linear-gradient(90deg,var(--danger),#f97316);}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  @media (max-width:700px){.grid{grid-template-columns:1fr;}}
+
+  /* --- POCZĄTEK POPRAWEK RWD DLA GRIDU WEWNĘTRZNEGO --- */
+  .grid{
+    display:grid;
+    /* Domyślnie dwie kolumny */
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  /* Na ekranach <= 700px przejdź na układ jednokolumnowy */
+  @media (max-width:700px){
+    .grid{grid-template-columns:1fr;}
+  }
+  /* --- KONIEC POPRAWEK RWD DLA GRIDU WEWNĘTRZNEGO --- */
+
   .product-panel{display:flex;flex-direction:column;gap:10px;}
   .product-list{max-height:320px;overflow:auto;border-radius:8px;border:1px dashed rgba(0,0,0,0.04);padding:8px;background:linear-gradient(0deg,transparent,rgba(0,0,0,0.01));}
-  .product-item{display:flex;justify-content:space-between;padding:8px;border-radius:8px;align-items:center; transition: background-color 0.2s;} /* Dodano transition */
+  .product-item{display:flex;justify-content:space-between;padding:8px;border-radius:8px;align-items:center; transition: background-color 0.2s;}
   .product-item.blocked{opacity:.45;filter:grayscale(.4);}
   .product-item button{margin-left:8px;}
-  /* ZMIANA: Dodano styl :hover dla product-item */
-  .product-item:not(.blocked):hover {
-      background-color: var(--glass);
-  }
-  /* KONIEC ZMIANY */
-  /* NOWY STYL: Przycisk usuwania własnego produktu */
-  .delete-custom-btn {
-      background: transparent;
-      border: none;
-      color: var(--danger);
-      cursor: pointer;
-      font-size: 11px;
-      padding: 2px 5px;
-      margin-left: 5px;
-      opacity: 0.6;
-      transition: opacity 0.2s, color 0.2s; /* Dodano color do transition */
-  }
-  .delete-custom-btn:hover {
-      opacity: 1;
-  }
-  .product-item .left { /* Kontener na lewą część (nazwa + makro + przycisk usuń) */
-    display: flex;
-    flex-direction: column;
-  }
-  .product-item .name-line { /* Kontener dla nazwy i przycisku usuwania */
-     display: flex;
-     align-items: center;
-  }
-  /* KONIEC NOWEGO STYLU */
+  .product-item:not(.blocked):hover {background-color: var(--glass);}
+  .delete-custom-btn {background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 11px; padding: 2px 5px; margin-left: 5px; opacity: 0.6; transition: opacity 0.2s, color 0.2s;}
+  .delete-custom-btn:hover {opacity: 1;}
+  .product-item .left {display: flex; flex-direction: column;}
+  .product-item .name-line {display: flex; align-items: center;}
 
   .plan-table{width:100%;border-collapse:collapse;margin-top:8px;}
   .plan-table th,.plan-table td{padding:8px;text-align:left;border-bottom:1px solid rgba(0,0,0,0.04);font-size:14px;}
-  .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;}
+  .plan-wrap{max-height:320px;overflow:auto;}
+
+  /* --- POCZĄTEK POPRAWEK RWD DLA ACTIONS --- */
+  .actions{
+    display:flex;
+    flex-wrap: wrap; /* Pozwól przyciskom się zawijać */
+    gap:8px;
+    justify-content:flex-end;
+    margin-top:10px;
+  }
+  /* Na mniejszych ekranach wyśrodkuj przyciski */
+   @media (max-width: 480px) {
+    .actions { justify-content: center; }
+    /* Opcjonalnie: daj przyciskom pełną szerokość */
+    /* .actions .btn { width: 100%; text-align: center; } */
+   }
+  /* --- KONIEC POPRAWEK RWD DLA ACTIONS --- */
+
   .btn{background:var(--accent);color:#021018;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;}
   .btn.ghost{background:transparent;border:1px solid rgba(0,0,0,0.08);}
-  .btn.small-btn { padding: 5px 8px; font-size: 12px; } /* NOWY STYL */
-  /* ---- NOWY STYL: Przycisk AI ---- */
-  .btn.ai {
-    background: linear-gradient(90deg, #6d28d9, #9f7aea); /* Fioletowy gradient */
-    color: #ffffff;
-    box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);
-  }
-  .btn.ai:hover {
-      background: linear-gradient(90deg, #5b21b6, #8b5cf6);
-  }
-  /* ---- KONIEC STYLU AI ---- */
-  
+  .btn.small-btn { padding: 5px 8px; font-size: 12px; }
+  .btn.ai {background: linear-gradient(90deg, #6d28d9, #9f7aea); color: #ffffff; box-shadow: 0 4px 10px rgba(109, 40, 217, 0.3);}
+  .btn.ai:hover {background: linear-gradient(90deg, #5b21b6, #8b5cf6);}
+
   .warning{padding:10px;border-radius:8px;background:linear-gradient(90deg,rgba(255,230,230,0.6),transparent);color:var(--danger);margin-top:10px;}
   .muted{color:var(--muted);font-size:13px;}
   footer{grid-column:1/-1;margin-top:18px;text-align:center;color:var(--muted);font-size:13px;}
   .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(0,0,0,0.03);font-size:12px;color:var(--muted);margin-right:6px;}
-  /* table responsive */
-  .plan-wrap{max-height:320px;overflow:auto;}
-  /* tiny input */
   .tiny{width:72px;}
   .icon{opacity:.8}
   .tooltip{position:relative;display:inline-block;}
   .tooltip .tt{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);padding:8px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.2);display:none;width:260px;color:var(--muted);font-size:13px; z-index: 10;}
   .tooltip:hover .tt{display:block;}
 
-  /* --- ZMIANA: Style dla rozwijanych kategorii --- */
-  .category-header {
-    font-weight: 600;
-    margin: 8px 0 4px 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    user-select: none; /* Zapobiega zaznaczaniu tekstu przy klikaniu */
-  }
-  .category-header::before {
-    content: '▼'; /* Strzałka w dół (rozwinięte) - teraz domyślnie zwinięta */
-    display: inline-block;
-    margin-right: 6px;
-    font-size: 10px;
-    transition: transform 0.2s;
-  }
-  .category-header.collapsed::before {
-    content: '▶'; /* Strzałka w prawo (zwinięte) */
-    transform: rotate(0deg); /* Opcjonalnie reset rotacji */
-  }
-  .category-items {
-    padding-left: 10px; /* lekkie wcięcie dla produktów */
-    border-left: 1px solid rgba(0,0,0,0.05);
-    margin-left: 10px;
-    overflow: hidden; /* Potrzebne dla płynnej animacji (chociaż tu jej nie ma) */
-    display: block; /* Zmieniono domyślny stan na ukryty */
-  }
-  .category-items.collapsed {
-    display: none; /* Ukryte, gdy kategoria zwinięta */
-  }
-  /* --- KONIEC ZMIANY --- */
+  .category-header {font-weight: 600; margin: 8px 0 4px 6px; cursor: pointer; display: flex; align-items: center; user-select: none;}
+  .category-header::before {content: '▼'; display: inline-block; margin-right: 6px; font-size: 10px; transition: transform 0.2s;}
+  .category-header.collapsed::before {content: '▶'; transform: rotate(0deg);}
+  .category-items {padding-left: 10px; border-left: 1px solid rgba(0,0,0,0.05); margin-left: 10px; overflow: hidden; display: block;}
+  .category-items.collapsed {display: none;}
 
-  /* --- NOWE: Style dla formularza dodawania produktu --- */
-  .add-product-form {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid rgba(0,0,0,0.05);
-  }
-  .add-product-form label {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-  .add-product-form input,
-  .add-product-form select {
-    margin-bottom: 10px;
-  }
-  .add-product-form .macro-inputs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  .add-product-form .macro-inputs input {
-    width: 100%; /* Make macro inputs full width within grid */
-  }
-  .add-product-form button {
-      margin-top: 5px;
-  }
-  /* NOWE STYLE DLA PANELU OSOBOWEGO */
-  #personalDataForm label { 
-    display: block; 
-    margin-bottom: 8px; 
-    font-size: 13px;
-  }
-  #personalDataForm label input { 
-    width: 100%; 
-    margin-top: 2px;
-  }
-  #personalDataForm label input.tiny { 
-    width: 120px; /* Nieco szerszy niż tiny */
-  }
-  #personalDataDisplay p.small {
-    margin: 4px 0;
-    font-size: 13px;
-  }
-  #personalDataDisplay p.small strong {
-    color: var(--muted);
-    font-weight: 600;
-    min-width: 110px;
-    display: inline-block;
-  }
-  /* --- KONIEC NOWYCH STYLÓW --- */
+  .add-product-form {margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.05);}
+  .add-product-form label {display: block; margin-bottom: 8px; font-size: 13px;}
+  .add-product-form input, .add-product-form select {margin-bottom: 10px;}
+  .add-product-form .macro-inputs {display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;}
+  .add-product-form .macro-inputs input {width: 100%;}
+  .add-product-form button {margin-top: 5px;}
 
-  /* ---- NOWE STYLE: Modal AI ---- */
-  .ai-modal-backdrop {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 998;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s, visibility 0.3s;
-  }
-  .ai-modal-backdrop.visible {
-    opacity: 1;
-    visibility: visible;
-  }
-  .ai-modal-content {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    width: 90%;
-    max-width: 550px;
-    transform: scale(0.95);
-    transition: transform 0.3s;
-    z-index: 999;
-  }
-  .ai-modal-backdrop.visible .ai-modal-content {
-    transform: scale(1);
-  }
-  .ai-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-  }
-  .ai-modal-header h2 {
-    margin: 0;
-    font-size: 18px;
-    color: var(--accent);
-  }
-  .ai-modal-close-btn {
-    background: var(--glass);
-    border: none;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 30px;
-    color: var(--muted);
-  }
-  .ai-modal-body {
-    font-size: 14px;
-    line-height: 1.6;
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-  .ai-modal-body ul {
-    padding-left: 20px;
-    margin-top: 10px;
-  }
-  .ai-modal-body li {
-    margin-bottom: 8px;
-  }
-  /* Animacja ładowania (spinner) */
-  .ai-loader {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 150px;
-    text-align: center;
-  }
-  .ai-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid var(--glass);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: ai-spin 1s linear infinite;
-  }
-  .ai-loader p {
-    margin-top: 15px;
-    font-size: 14px;
-    color: var(--muted);
-  }
-  @keyframes ai-spin {
-    to { transform: rotate(360deg); }
-  }
-  /* Styl dla odpowiedzi błędu */
-  .ai-error-message {
-    color: var(--danger);
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    padding: 12px;
-    border-radius: 8px;
-  }
-  /* ---- KONIEC STYLI MODALA ---- */
+  #personalDataForm label { display: block; margin-bottom: 8px; font-size: 13px;}
+  #personalDataForm label input { width: 100%; margin-top: 2px;}
+  #personalDataForm label input.tiny { width: 120px;}
+  #personalDataDisplay p.small {margin: 4px 0; font-size: 13px;}
+  #personalDataDisplay p.small strong {color: var(--muted); font-weight: 600; min-width: 110px; display: inline-block;}
 
+  .ai-modal-backdrop {position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 998; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;}
+  .ai-modal-backdrop.visible {opacity: 1; visibility: visible;}
+  .ai-modal-content {background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); width: 90%; max-width: 550px; transform: scale(0.95); transition: transform 0.3s; z-index: 999;}
+  .ai-modal-backdrop.visible .ai-modal-content {transform: scale(1);}
+  .ai-modal-header {display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;}
+  .ai-modal-header h2 {margin: 0; font-size: 18px; color: var(--accent);}
+  .ai-modal-close-btn {background: var(--glass); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 16px; line-height: 30px; color: var(--muted);}
+  .ai-modal-body {font-size: 14px; line-height: 1.6; max-height: 60vh; overflow-y: auto;}
+  .ai-modal-body ul {padding-left: 20px; margin-top: 10px;}
+  .ai-modal-body li {margin-bottom: 8px;}
+  .ai-loader {display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; text-align: center;}
+  .ai-spinner {width: 40px; height: 40px; border: 4px solid var(--glass); border-top-color: var(--accent); border-radius: 50%; animation: ai-spin 1s linear infinite;}
+  .ai-loader p {margin-top: 15px; font-size: 14px; color: var(--muted);}
+  @keyframes ai-spin {to { transform: rotate(360deg); }}
+  .ai-error-message {color: var(--danger); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 12px; border-radius: 8px;}
 
-  /* --- NOWE STYLE DRUKOWANIA (PDF) --- */
   @media print {
-    /* Ukryj elementy interfejsu, które nie są potrzebne na wydruku */
-    aside,
-    .product-panel,
-    .add-product-form, /* Ukryj formularz dodawania */
-    .actions,
-    .controls,
-    .tag.tooltip,
-    #themeToggle,
-    #langToggle, /* Ukryj przycisk języka */
-    .delete-custom-btn, /* Ukryj przyciski usuwania */
-    #productSearchInput, /* Ukryj pole wyszukiwania */
-    #aiButton /* Ukryj przycisk AI */
-    {
-      display: none !important;
-    }
-    
-    /* Ukryj ostatnią kolumnę w tabeli (przyciski "Usuń") */
-    .plan-table th:last-child,
-    .plan-table td:last-child {
-      display: none !important;
-    }
-
-    /* KLUCZOWA ZMIANA: Usuń przewijanie i limit wysokości dla listy planu */
-    .plan-wrap {
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    
-    /* Zresetuj layout grida, aby główna kolumna zajęła całą szerokość */
-    .app, .grid {
-      display: block;
-      grid-template-columns: 1fr;
-    }
-    
-    /* Upewnij się, że tło jest białe (drukarki tego oczekują) */
-    body, .card {
-      background: #fff !important;
-      color: #000 !important;
-      box-shadow: none !important;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    
-    h1, .stat strong, .bar .label {
-      color: #000 !important;
-    }
-    
-    /* ZMIANA: Dodaj style dla drukowania tła pasków postępu */
-    .bar .fill {
-        /* Usunięto border */
-        background: linear-gradient(90deg,var(--accent),#60a5fa) !important; /* Przywróć gradient */
-        print-color-adjust: exact !important; /* Wymuś drukowanie tła */
-        -webkit-print-color-adjust: exact !important; /* Wymuś drukowanie tła (Chrome/Safari) */
-    }
-    .bar.warn .fill {
-        background: linear-gradient(90deg,var(--danger),#f97316) !important; /* Przywróć gradient ostrzeżenia */
-    }
-    .bar .track {
-        background: #e6eef3 !important; /* Ustaw jasne tło dla ścieżki */
-         print-color-adjust: exact !important; 
-        -webkit-print-color-adjust: exact !important;
-    }
-    /* KONIEC ZMIANY */
-    
-    /* Upewnij się, że tekst ostrzeżeń jest widoczny */
-    .warning {
-        background: #eee !important;
-        color: #000 !important;
-        border: 1px solid #999;
-    }
-
-    /* Stopka na wydruku */
-    footer {
-        color: #000 !important; /* Zawsze czarny tekst dla lepszej czytelności na wydruku */
-        background: #fff !important; /* Białe tło */
-        border-top: 1px solid #ccc !important;
-    }
-    footer div, footer p, footer strong {
-        color: #000 !important; /* Upewnij się, że wszystkie elementy w stopce są czarne */
-    }
-  }
-  /* --- KONIEC STYLÓW DRUKOWANIA --- */
-
-  /* ZMIANA: Poprawka widoczności przycisków 'ghost' w trybie ciemnym */
-  [data-theme="dark"] .btn.ghost {
-    border-color: rgba(255, 255, 255, 0.2); /* Jaśniejsza ramka */
-    color: var(--muted); /* Jaśniejszy tekst */
-  }
-  [data-theme="dark"] .btn.ghost:hover {
-    background-color: var(--glass);
-    border-color: rgba(255, 255, 255, 0.4);
-  }
-  /* --- KONIEC ZMIANY --- */
-
-  /* ZMIANA: Poprawione style stopki dla trybu jasnego i ciemnego */
-  footer {
-    color: #374151; /* Ciemnoszary (prawie czarny) dla tekstu w trybie jasnym */
-    background: transparent;
-  }
-  /* Tytuł "Autor" w trybie jasnym - ma już inline style, ale możemy je wzmocnić */
-  footer div[style*="font-weight: 600"] {
-      color: var(--accent); /* Domyślny (ciemny) accent */
-  }
-  /* Tekst "Zastrzeżenie" w trybie jasnym */
-  footer strong {
-      color: #000; /* Czarny, zgodnie z prośbą */
+    aside, .product-panel, .add-product-form, .actions, .controls, .tag.tooltip, #themeToggle, #langToggle, .delete-custom-btn, #productSearchInput, #aiButton {display: none !important;}
+    .plan-table th:last-child, .plan-table td:last-child {display: none !important;}
+    .plan-wrap {max-height: none !important; overflow: visible !important;}
+    .app, .grid {display: block; grid-template-columns: 1fr;}
+    body, .card {background: #fff !important; color: #000 !important; box-shadow: none !important; border: 1px solid #ccc; padding: 10px;}
+    h1, .stat strong, .bar .label {color: #000 !important;}
+    .bar .fill {background: linear-gradient(90deg,var(--accent),#60a5fa) !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important;}
+    .bar.warn .fill {background: linear-gradient(90deg,var(--danger),#f97316) !important;}
+    .bar .track {background: #e6eef3 !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important;}
+    .warning {background: #eee !important; color: #000 !important; border: 1px solid #999;}
+    footer {color: #000 !important; background: #fff !important; border-top: 1px solid #ccc !important;}
+    footer div, footer p, footer strong {color: #000 !important;}
   }
 
-  /* Nadpisania dla trybu ciemnego */
-  [data-theme="dark"] footer {
-      color: #b0b8c5 !important; /* Jasnoszary dla tekstu <p> w trybie ciemnym */
-  }
-  /* Tytuł "Autor" w trybie ciemnym */
-  [data-theme="dark"] footer div[style*="font-weight: 600"] {
-      color: var(--accent) !important; /* Jasny accent, tak jak było */
-  }
-  /* Tekst "Zastrzeżenie" w trybie ciemnym */
-  [data-theme="dark"] footer strong {
-      color: #ffffff !important; /* Czysty biały dla maksymalnego kontrastu */
-  }
-  /* --- KONIEC ZMIANY STYLÓW STOPKI --- */
+  [data-theme="dark"] .btn.ghost {border-color: rgba(255, 255, 255, 0.2); color: var(--muted);}
+  [data-theme="dark"] .btn.ghost:hover {background-color: var(--glass); border-color: rgba(255, 255, 255, 0.4);}
+
+  footer {color: #374151; background: transparent;}
+  footer div[style*="font-weight: 600"] {color: var(--accent);}
+  footer strong {color: #000;}
+  [data-theme="dark"] footer {color: #b0b8c5 !important;}
+  [data-theme="dark"] footer div[style*="font-weight: 600"] {color: var(--accent) !important;}
+  [data-theme="dark"] footer strong {color: #ffffff !important;}
 
 </style>
 </head>
@@ -460,7 +233,7 @@
         <div class="controls">
           <!-- ZMIANA: Poprawiona struktura etykiety i selecta -->
           <label class="small">
-            <span data-translate="dayModeLabel">Tryb dnia:</span> 
+            <span data-translate="dayModeLabel">Tryb dnia:</span>
             <select id="dayMode" class="select">
               <option value="day1" data-translate="day1Option">Dzień 1 — ok. 1090 kcal</option>
               <option value="days2to5" data-translate="days2to5Option">Dni 2–5 — ok. 730 kcal</option>
@@ -480,28 +253,28 @@
           <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
           <strong id="kcalTotal">0</strong>
           <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
-          <div class="muted" id="kcalTarget">/ 1092 kcal</div> 
+          <div class="muted" id="kcalTarget">/ 1092 kcal</div>
         </div>
         <div class="stat">
           <div class="small" data-translate="proteinLabel">Białko (g)</div>
           <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
           <strong id="proteinTotal">0 g</strong>
           <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
-          <div class="muted" id="proteinTarget">/ 28 g</div> 
+          <div class="muted" id="proteinTarget">/ 28 g</div>
         </div>
         <div class="stat">
           <div class="small" data-translate="fatLabel">Tłuszcze (g)</div>
           <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
           <strong id="fatTotal">0 g</strong>
           <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
-          <div class="muted" id="fatTarget">/ 68 g</div> 
+          <div class="muted" id="fatTarget">/ 68 g</div>
         </div>
         <div class="stat">
           <div class="small" data-translate="carbsLabel">Węglowodany (g)</div>
           <div class="stat-label total" data-translate="sumFromPlan">Suma z planu</div>
           <strong id="carbTotal">0 g</strong>
           <div class="stat-label" data-translate="refLimit">Limit referencyjny</div>
-          <div class="muted" id="carbTarget">/ 92 g</div> 
+          <div class="muted" id="carbTarget">/ 92 g</div>
         </div>
       </div>
       <!-- KONIEC ZMIANY -->
@@ -535,7 +308,7 @@
              <strong data-translate="productListTitle">Lista produktów (do wyboru)</strong>
           </div>
           <!-- KONIEC ZMIANY -->
-          
+
           <!-- NOWE POLE WYSZUKIWANIA -->
           <input type="text" id="productSearchInput" class="select" data-translate-placeholder="productSearchPlaceholder" placeholder="Wyszukaj produkt..." style="width: 100%; margin-bottom: 10px;">
           <!-- KONIEC NOWEGO POLA -->
@@ -599,7 +372,7 @@
           <!-- NOWY: Panel Danych Osobowych -->
           <div id="personalPanel" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.05);">
             <strong data-translate="personalPanelTitle">Mój Panel Postu</strong>
-            
+
             <!-- Widok wyświetlania -->
             <div id="personalDataDisplay" style="margin-top: 10px;">
               <p class="small"><strong><span data-translate="personalName">Imię/Nazwisko</span>:</strong> <span id="displayName">--</span></p>
